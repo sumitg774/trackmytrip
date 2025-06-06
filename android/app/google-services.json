@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "343618313641",
+    "project_id": "trackmytrip-ea93a",
+    "storage_bucket": "trackmytrip-ea93a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:343618313641:android:40ff6eb78c15d8932778b8",
+        "android_client_info": {
+          "package_name": "com.kibbcom.trip_tracker_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGDKj1SapjbNQ8rCKG4xFZtATZG6YbCDc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
