@@ -6,17 +6,18 @@ import 'TextFields.dart';
 
 class SimpleAlertDialog extends StatefulWidget {
   String title;
+  String? selectedLocation;
   final VoidCallback onPressed;
   bool endDialog;
 
-  SimpleAlertDialog({super.key, required this.title,required  this.onPressed, this.endDialog = false});
+  SimpleAlertDialog({super.key, required this.title, required this.selectedLocation, required this.onPressed, this.endDialog = false});
 
   @override
   State<SimpleAlertDialog> createState() => _SimpleAlertDialogState();
 }
 
 class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
-  String? selectedLocation;
+
   late TextEditingController OtherLocationText;
   TextEditingController DestinationLocation = TextEditingController();
   TextEditingController DescriptionText = TextEditingController();
@@ -73,16 +74,16 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
                   children: [
                     CustomDropdown<String>(
                       hint: "Select Start Location",
-                      value: selectedLocation,
+                      value: widget.selectedLocation,
                       items: ["Home", "Kibbcom Office", "Other"],
                       onChanged: (val) {
                         setState(() {
-                          selectedLocation = val;
+                          widget.selectedLocation = val;
                         });
                       },
                     ),
                     const SizedBox(height: 18),
-                    selectedLocation == "Other"
+                    widget.selectedLocation == "Other"
                         ? CustomTextField(
                           hintText: "Enter Other Location",
                           controller: OtherLocationText,

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SquareIconButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -145,7 +146,9 @@ class TransparentFab extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).animate()
+        .slideY(begin: 1.0, end: 0.0, duration: 600.ms, curve: Curves.easeOut)
+        .fadeIn(duration: 900.ms, curve: Curves.easeOut);
   }
 }
 

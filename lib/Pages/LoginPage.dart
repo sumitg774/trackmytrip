@@ -193,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
         errorMessage = null; // Clear any previous errors on successful login
       });
       // Navigator.pop(context); // Dismiss the loading dialog
-      print("login succesful");
+
       Navigator.pushNamedAndRemoveUntil(context, "/home", (route) => false);
     } catch (error) {
       // If login fails, show an error message

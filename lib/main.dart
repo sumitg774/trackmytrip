@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:trip_tracker_app/Utils/StorageService.dart';
 
 import 'PageComponents/BottomNavBar.dart';
 import 'Pages/LoginPage.dart';
@@ -7,6 +8,7 @@ import 'Pages/SignupPage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await StorageService.instance.init();
   await Firebase.initializeApp();
   runApp(const MyApp());
 }
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Trip Tracker',
       theme: ThemeData(primarySwatch: Colors.blue),
-       initialRoute: '/login',
+       initialRoute: '/home',
       routes: {
         '/home': (context) => const BottomNavBar(),
         '/login': (context) => const LoginPage(),
