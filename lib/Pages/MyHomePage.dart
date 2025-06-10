@@ -69,20 +69,25 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ],
-        flexibleSpace: Stack(
-          children: [
-            Positioned(
-              right: 300, // distance from the right edge
-              bottom: -5, // distance from the bottom edge
-              child: Icon(
-                Icons.circle,
-                size: 100,
-                color: Colors.blue.withOpacity(
-                  0.2,
-                ), // for a subtle background effect
-              ),
-            ),
-          ],
+        flexibleSpace: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            double screenwidth = constraints.maxWidth;
+            return Stack(
+              children: [
+                Positioned(
+                  right: screenwidth * 0.855, // distance from the right edge
+                  bottom: -5, // distance from the bottom edge
+                  child: Icon(
+                    Icons.circle,
+                    size: 100,
+                    color: Colors.blue.withOpacity(
+                      0.2,
+                    ), // for a subtle background effect
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         title: Padding(
           padding: const EdgeInsets.only(left: 10.0),

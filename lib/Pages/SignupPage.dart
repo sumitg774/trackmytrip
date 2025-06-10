@@ -27,6 +27,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController confirmPassword = TextEditingController();
   final TextEditingController empId = TextEditingController();
   bool isSubmitting = false;
+  late bool isDisabled = false;
 
   String? SignupEmailValidation(String? email) {
     // Updated Regex for stricter validation
@@ -143,7 +144,7 @@ class _SignupPageState extends State<SignupPage> {
         'teams': ["Internal"],
         // 'joiningDate': DateFormat('MM/dd/yyyy').format(DateTime.now()),
         // 'dob': dateofbirth.text.isNotEmpty ? dateofbirth.text : "Unknown",
-        // 'isDisabled': isDisabled,
+        'isDisabled': isDisabled,
         'isApproved': false,
       };
 
