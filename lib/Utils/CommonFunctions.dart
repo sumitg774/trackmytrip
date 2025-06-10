@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import 'StorageService.dart';
 
 class CommonFunctions{
   Map<String, String> getDomainCollection(String emailDomain) {
@@ -40,4 +42,27 @@ class CommonFunctions{
 
     // MyApp.messengerKey.currentState?.showSnackBar(snackBar);
   }
+
+  Future<Map<String, dynamic>> getLoggedInUserInfo() async {
+    Map<String, dynamic> UserData = {};
+    String? collectionName = await StorageService.instance.getCollectionName();
+    print("CO: $collectionName");
+
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    print("U $uid");
+
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection(collectionName!)
+        .doc(uid)
+        .get();
+
+    if (doc.exists) {
+      UserData = doc.data() as Map<String, dynamic>;
+      print("$UserData :::::::");
+      return UserData;
+    } else {
+      throw Exception("Couldn't get data");
+    }
+  }
+
 }
