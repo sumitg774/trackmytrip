@@ -6,18 +6,23 @@ import 'TextFields.dart';
 
 class SimpleAlertDialog extends StatefulWidget {
   String title;
-  String? selectedLocation;
-  final VoidCallback onPressed;
-  bool endDialog;
+  Widget content;
+  final VoidCallback onConfirmButtonPressed;
+  String confirmBtnText;
 
-  SimpleAlertDialog({super.key, required this.title, required this.selectedLocation, required this.onPressed, this.endDialog = false});
+  SimpleAlertDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    required this.onConfirmButtonPressed,
+    required this.confirmBtnText,
+  });
 
   @override
   State<SimpleAlertDialog> createState() => _SimpleAlertDialogState();
 }
 
 class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
-
   late TextEditingController OtherLocationText;
   TextEditingController DestinationLocation = TextEditingController();
   TextEditingController DescriptionText = TextEditingController();
@@ -53,44 +58,7 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
 
       content: Padding(
         padding: const EdgeInsets.symmetric(vertical: 18.0),
-        child:
-            widget.endDialog
-                ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CustomTextField(
-                      hintText: "Enter Destination",
-                      controller: DestinationLocation,
-                    ),
-                    const SizedBox(height: 18),
-                    DescriptionTextField(
-                      hintText: "Description",
-                      controller: DescriptionText,
-                    ),
-                  ],
-                )
-                : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CustomDropdown<String>(
-                      hint: "Select Start Location",
-                      value: widget.selectedLocation,
-                      items: ["Home", "Kibbcom Office", "Other"],
-                      onChanged: (val) {
-                        setState(() {
-                          widget.selectedLocation = val;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    widget.selectedLocation == "Other"
-                        ? CustomTextField(
-                          hintText: "Enter Other Location",
-                          controller: OtherLocationText,
-                        )
-                        : const SizedBox(height: 0),
-                  ],
-                ),
+        child: widget.content
       ),
 
       actions: [
@@ -108,8 +76,8 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
             Expanded(
               flex: 1,
               child: SimpleButton(
-                onPressed: widget.onPressed,
-                buttonText: widget.endDialog ? "End" : "Start",
+                onPressed: widget.onConfirmButtonPressed,
+                buttonText: widget.confirmBtnText,
               ),
             ),
           ],
