@@ -339,7 +339,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 color: CupertinoColors.destructiveRed,
               ),
               onTap:(){
-                MaterialPageRoute(builder: (context) => const LoginPage());
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                      (route) => false,
+                );
               }
             ),
           ),

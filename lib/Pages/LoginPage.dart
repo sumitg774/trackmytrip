@@ -87,24 +87,24 @@ class _LoginPageState extends State<LoginPage> {
         final userEmail = (doc['email'] as String).trim().toLowerCase();
         if (userEmail == email) {
           bool isDisabled = doc['isDisabled'] ?? false;
-          bool isVerified = doc['isApproved'] ?? false;
+          // bool isVerified = doc['isApproved'] ?? false;
 
           return {
             "isDisabled": isDisabled,
-            "isVerified": isVerified, // Always true
+            // "isVerified": isVerified, // Always true
           };
         }
       }
       // If no matching email is found, return false values
       return {
         "isDisabled": false,
-        "isVerified": false,
+        // "isVerified": false,
       };
     } catch (e) {
       print("Error checking if user is enabled: $e");
       return {
         "isDisabled": false,
-        "isVerified": false,
+        // "isVerified": false,
       };
     }
   }
@@ -154,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
       var result = await isUserEnabled(normalizedEmail,dynamicCollection);
 
       bool isDisabled = result["isDisabled"] ?? false;
-      bool isVerified = result["isVerified"] ?? false;
+      // bool isVerified = result["isVerified"] ?? false;
 
       if (isDisabled) {
         setState(() {
@@ -164,14 +164,14 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      if (!isVerified) {
-        setState(() {
-          errorMessage =
-          "Your account is under verification. Please contact support.";
-        });
-        Navigator.pop(context); // Dismiss the loading dialog
-        return;
-      }
+      // if (!isVerified) {
+      //   setState(() {
+      //     errorMessage =
+      //     "Your account is under verification. Please contact support.";
+      //   });
+      //   Navigator.pop(context); // Dismiss the loading dialog
+      //   return;
+      // }
 
       // Perform the login with normalized email and password
 
@@ -367,39 +367,39 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
 
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 6.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text("------OR------", style: TextStyle(color: Colors.grey)),
-                                  ],
-                                ),
-                              ),
-
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.pushNamed(context, "/register");
-                                },
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: TextStyle(fontSize: 16, color: AppColors.customWhite),
-                                    children: [
-                                      const TextSpan(text: "Do you want to register? "),
-                                      TextSpan(
-                                        text: "Register",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.customBlue,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: screenHeight * 0.03),
-                            ],
-                          ),
+                            //   const Padding(
+                            //     padding: EdgeInsets.symmetric(vertical: 6.0),
+                            //     child: Row(
+                            //       mainAxisAlignment: MainAxisAlignment.center,
+                            //       children: [
+                            //         Text("------OR------", style: TextStyle(color: Colors.grey)),
+                            //       ],
+                            //     ),
+                            //   ),
+                            //
+                            //   GestureDetector(
+                            //     onTap: () {
+                            //       Navigator.pushNamed(context, "/register");
+                            //     },
+                            //     child: RichText(
+                            //       text: TextSpan(
+                            //         style: TextStyle(fontSize: 16, color: AppColors.customWhite),
+                            //         children: [
+                            //           const TextSpan(text: "Do you want to register? "),
+                            //           TextSpan(
+                            //             text: "Register",
+                            //             style: TextStyle(
+                            //               fontWeight: FontWeight.bold,
+                            //               color: AppColors.customBlue,
+                            //             ),
+                            //           ),
+                            //         ],
+                            //       ),
+                            //     ),
+                            //   ),
+                            //   SizedBox(height: screenHeight * 0.03),
+                            // ],
+                         ]),
                         ),
                       ),
                     ),
