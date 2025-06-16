@@ -138,6 +138,7 @@ class _SignupPageState extends State<SignupPage> {
         'phone': mobile.text.isNotEmpty ? mobile.text : "Unknown",
         // 'avtar': avtar,
         'emp_role': "Software Engineer",
+        'is_trip_started':false,
         // 'fcm_token': fcm_token,
         // 'upcoming': upcomingPlans.map((e) => e.toMap()).toList(),
         'team': "Internal",
@@ -145,7 +146,7 @@ class _SignupPageState extends State<SignupPage> {
         // 'joiningDate': DateFormat('MM/dd/yyyy').format(DateTime.now()),
         // 'dob': dateofbirth.text.isNotEmpty ? dateofbirth.text : "Unknown",
         'isDisabled': isDisabled,
-        'isApproved': false,
+        // 'isApproved': false,
       };
 
       // 🔍 Confirm domain registered
@@ -179,12 +180,14 @@ class _SignupPageState extends State<SignupPage> {
 
       // ✅ Success feedback
       // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Sign up success - wait for admin approval')),
+      //   SnackBar(content: Text('Sign up successfully')),
       // );
     } catch (e) {
       print("❌ Error while adding user: $e");
     }
   }
+
+
 
   Future<bool> signUpWithEmail() async {
     // Show progress dialog

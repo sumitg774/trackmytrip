@@ -16,6 +16,8 @@ import 'package:trip_tracker_app/Utils/CommonFunctions.dart';
 import 'package:trip_tracker_app/Utils/StorageService.dart';
 import 'package:uuid/uuid.dart';
 
+import 'LoginPage.dart';
+
 import '../Components/TextFields.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -374,9 +376,18 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 22.0),
-            child: Icon(
-              Icons.logout_rounded,
-              color: CupertinoColors.destructiveRed,
+            child: GestureDetector(
+              child: Icon(
+                Icons.logout_rounded,
+                color: CupertinoColors.destructiveRed,
+              ),
+              onTap:(){
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                      (route) => false,
+                );
+              }
             ),
           ),
         ],

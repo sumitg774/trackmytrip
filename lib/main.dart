@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Trip Tracker',
       theme: ThemeData(primarySwatch: Colors.blue),
-       initialRoute: '/home',
+       initialRoute: '/login',
       routes: {
         '/home': (context) => const BottomNavBar(),
         '/login': (context) => const LoginPage(),
