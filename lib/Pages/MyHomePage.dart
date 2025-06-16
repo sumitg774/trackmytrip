@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +34,8 @@ class _MyHomePageState extends State<MyHomePage> {
   TextEditingController OtherLocation = TextEditingController();
   TextEditingController DestinationLocation = TextEditingController();
   TextEditingController DescriptionText = TextEditingController();
+  double? total_distance;
+  double? total_expenditure;
 
   @override
   void initState() {
@@ -44,14 +49,52 @@ class _MyHomePageState extends State<MyHomePage> {
     final todayKey = DateFormat(
       'dd-MM-yyyy',
     ).format(DateTime.now()); // import intl
-    TodaysTripLogs = triplogsMap?[todayKey] ?? [];
+    TodaysTripLogs = await triplogsMap?[todayKey] ?? [];
     print('LISTLIST: $TodaysTripLogs');
     isSquareButtonEnabled = await userData?['is_trip_started'];
     print("ENABLED BTN $isSquareButtonEnabled");
     setState(() {
       isLoading = false;
     });
+    calculateTodaysTotalDistance();
+    calculateTodaysTotalExpenditure();
     print(":::: $userData");
+  }
+
+  void calculateTodaysTotalDistance() {
+    double total_distance2 = 0.0;
+
+    TodaysTripLogs.forEach((log) {
+
+      final distance = double.tryParse(log['distance']) ?? 0.0;
+      print("_________$distance");
+      if (distance != null) {
+        total_distance2 += distance;
+      }
+    });
+
+    setState(() {
+      total_distance = total_distance2;
+    });
+
+    // print(":::TOTAL DISTANCE: ${total_distance.toStringAsFixed(2)}");
+  }
+
+
+  void calculateTodaysTotalExpenditure(){
+      double total_expenditure2 = 0.0;
+      TodaysTripLogs.forEach((log) {
+        final expenditure = double.tryParse(log['travel_cost']);
+        print("_________$expenditure");
+        if (expenditure != null) {
+          total_expenditure2 += expenditure;
+        }
+      });
+
+      setState(() {
+        total_expenditure = total_expenditure2;
+      });
+
   }
 
   void showStartTripAlertDialog() {
@@ -254,9 +297,8 @@ class _MyHomePageState extends State<MyHomePage> {
             startlongitude,
             endlatitude,
             endlongitude,
-          ) /
-          1000;
-      print(":::: total Distance::::: $totalDistance");
+          ) / 1000;
+      print("::::total Distance:::: $totalDistance");
 
       final Map<String, dynamic> endData = {
         "to": to,
@@ -323,11 +365,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return Scaffold(
-      floatingActionButton: TransparentFab(expenditure: "200.0", kms: "20.0"),
+      floatingActionButton: TransparentFab(expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0", kms: total_distance?.toStringAsFixed(2) ?? "0.0"),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       backgroundColor: CupertinoColors.white,
       appBar: AppBar(
         toolbarHeight: 100,
+        scrolledUnderElevation: 0,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 22.0),
@@ -412,47 +455,79 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(height: 50),
                 SimpleContainer(
                   title: "Today's Trip Logs",
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListView.builder(
-                        itemCount: TodaysTripLogs.length,
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          return TripSummaryCard(
-                                from: TodaysTripLogs[index]['from'] ?? "~",
-                                to: TodaysTripLogs[index]['to'] ?? "~",
-                                departureTime:
-                                    TodaysTripLogs[index]['depart'] ?? "~",
-                                arrivalTime:
-                                    TodaysTripLogs[index]['arrive'] ?? "~",
-                                distance:
-                                    TodaysTripLogs[index]['distance'] ?? "~",
-                                expense:
-                                    TodaysTripLogs[index]['travel_cost'] ??
-                                    "~",
-                                riding:
-                                    TodaysTripLogs[index]['to'] == "~"
-                                        ? true
-                                        : false,
-                              )
-                              .animate()
-                              .fade(
-                                duration: 100.ms,
-                                curve: Curves.easeOut,
-                                delay: 100.ms,
-                              )
-                              .slideY(
-                                begin: 1.8,
-                                curve: Curves.fastEaseInToSlowEaseOut,
-                                duration: 1000.ms,
-                              );
-                        },
-                      ),
-                      SizedBox(height: 50),
-                    ],
-                  ),
+                  child:
+                      TodaysTripLogs.isEmpty
+                          ? Center(
+                            child: Padding(
+                                  padding: const EdgeInsets.only(top: 66.0),
+                                  child: Text(
+                                    "No Trip Logs yet!",
+                                    style: TextStyle(
+                                      color: CupertinoColors.systemGrey2,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                )
+                                .animate()
+                                .fade(duration: 400.ms)
+                                .scale(
+                                  begin: Offset(0.8, 0.8),
+                                  end: Offset(1, 1),
+                                  curve: Curves.easeOut,
+                                )
+                                .moveY(
+                                  begin: 30,
+                                  end: 0,
+                                  duration: 500.ms,
+                                  curve: Curves.easeOutBack,
+                                ),
+                          )
+                          : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListView.builder(
+                                itemCount: TodaysTripLogs.length,
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemBuilder: (context, index) {
+                                  return TripSummaryCard(
+                                        from:
+                                            TodaysTripLogs[index]['from'] ??
+                                            "~",
+                                        to: TodaysTripLogs[index]['to'] ?? "~",
+                                        departureTime:
+                                            TodaysTripLogs[index]['depart'] ??
+                                            "~",
+                                        arrivalTime:
+                                            TodaysTripLogs[index]['arrive'] ??
+                                            "~",
+                                        distance:
+                                            TodaysTripLogs[index]['distance'] ??
+                                            "~",
+                                        expense:
+                                            TodaysTripLogs[index]['travel_cost'] ??
+                                            "~",
+                                        riding:
+                                            TodaysTripLogs[index]['to'] == "~"
+                                                ? true
+                                                : false,
+                                      )
+                                      .animate()
+                                      .fade(
+                                        duration: 100.ms,
+                                        curve: Curves.easeOut,
+                                        delay: 100.ms,
+                                      )
+                                      .slideY(
+                                        begin: 1.8,
+                                        curve: Curves.fastEaseInToSlowEaseOut,
+                                        duration: 1000.ms,
+                                      );
+                                },
+                              ),
+                              SizedBox(height: 50),
+                            ],
+                          ),
                 ),
               ],
             ),

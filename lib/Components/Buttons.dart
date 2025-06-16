@@ -82,7 +82,7 @@ class TransparentFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -91,7 +91,7 @@ class TransparentFab extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 5),
               decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.4),
+        color: Colors.white.withOpacity(0.2),
         border: Border.all(
           color: Colors.white.withOpacity(0.5),
           width: 0.5,
@@ -130,7 +130,7 @@ class TransparentFab extends StatelessWidget {
                       Text("Today's Distance", style: TextStyle(fontSize: 12)),
                       SizedBox(height: 2),
                       Text(
-                        "$kms kms",
+                        "${kms} kms",
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
