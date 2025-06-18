@@ -32,6 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
   String? selectedLocation;
+  String? selectedVehicle;
   late List<dynamic> TodaysTripLogs = [];
   TextEditingController OtherLocation = TextEditingController();
   TextEditingController DestinationLocation = TextEditingController();
@@ -67,7 +68,6 @@ class _MyHomePageState extends State<MyHomePage> {
     double total_distance2 = 0.0;
 
     TodaysTripLogs.forEach((log) {
-
       final distance = double.tryParse(log['distance']) ?? 0.0;
       print("_________$distance");
       if (distance != null) {
@@ -82,21 +82,53 @@ class _MyHomePageState extends State<MyHomePage> {
     // print(":::TOTAL DISTANCE: ${total_distance.toStringAsFixed(2)}");
   }
 
+  void calculateTodaysTotalExpenditure() {
+    double total_expenditure2 = 0.0;
+    TodaysTripLogs.forEach((log) {
+      final expenditure = double.tryParse(log['travel_cost']);
+      print("_________$expenditure");
+      if (expenditure != null) {
+        total_expenditure2 += expenditure;
+      }
+    });
 
-  void calculateTodaysTotalExpenditure(){
-      double total_expenditure2 = 0.0;
-      TodaysTripLogs.forEach((log) {
-        final expenditure = double.tryParse(log['travel_cost']);
-        print("_________$expenditure");
-        if (expenditure != null) {
-          total_expenditure2 += expenditure;
-        }
-      });
+    setState(() {
+      total_expenditure = total_expenditure2;
+    });
+  }
 
-      setState(() {
-        total_expenditure = total_expenditure2;
-      });
-
+  void showSignOutAlertDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return SimpleAlertDialog(
+          title: "Sign Out",
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.logout_rounded,
+                color: CupertinoColors.destructiveRed,
+                size: 45,
+              ),
+              SizedBox(height: 20),
+              Text(
+                "Do you want to logout?",
+                style: TextStyle(
+                  color: CupertinoColors.systemGrey2,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          onConfirmButtonPressed: () {
+            SignOut();
+          },
+          confirmBtnText: "Logout",
+        );
+      },
+    );
   }
 
   void showStartTripAlertDialog() {
@@ -113,6 +145,17 @@ class _MyHomePageState extends State<MyHomePage> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  CustomDropdown<String>(
+                    hint: "Select Your Vehicle",
+                    value: selectedVehicle,
+                    items: ["2-Wheeler", "4-Wheeler"],
+                    onChanged: (vehicle) {
+                      setState(() {
+                        selectedVehicle = vehicle;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 18),
                   CustomDropdown<String>(
                     hint: "Select Start Location",
                     value: selectedLocation,
@@ -179,6 +222,27 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  String getGreetingMessage() {
+    final hour = DateTime.now().hour;
+
+    if (hour >= 5 && hour < 12) {
+      return 'Good Morning!';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good Afternoon!';
+    } else {
+      return 'Good Evening!';
+    }
+  }
+
+  void SignOut() {
+    FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
   Future<void> startTrip() async {
     final Uuid _uuid = Uuid();
     try {
@@ -202,6 +266,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final String? from =
           selectedLocation == 'Other' ? OtherLocation.text : selectedLocation;
       final String tripId = _uuid.v4();
+      final String? vehicle = selectedVehicle;
 
       final Map<String, dynamic> TripLog = {
         "tripId": tripId,
@@ -209,6 +274,7 @@ class _MyHomePageState extends State<MyHomePage> {
         "to": "~",
         "depart": starttimestamp,
         "start": {"latitude": startlatitude, "longitude": startlongitude},
+        "vehicle": vehicle,
       };
       String? collectionName =
           await StorageService.instance.getCollectionName();
@@ -299,8 +365,12 @@ class _MyHomePageState extends State<MyHomePage> {
             startlongitude,
             endlatitude,
             endlongitude,
-          ) / 1000;
+          ) /
+          1000;
       print("::::total Distance:::: $totalDistance");
+
+      double companyTravelAllowance =
+          tripsForToday[indexToUpdate]['vehicle'] == "2-Wheeler" ? 5 : 8;
 
       final Map<String, dynamic> endData = {
         "to": to,
@@ -308,7 +378,9 @@ class _MyHomePageState extends State<MyHomePage> {
         "end": {"latitude": endlatitude, "longitude": endlongitude},
         "desc": desc,
         "distance": totalDistance.toStringAsFixed(2),
-        "travel_cost": (totalDistance * 10).toStringAsFixed(2),
+        "travel_cost": (totalDistance * companyTravelAllowance).toStringAsFixed(
+          2,
+        ),
       };
 
       Map<String, dynamic> existingTrip = Map<String, dynamic>.from(
@@ -367,7 +439,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return Scaffold(
-      floatingActionButton: TransparentFab(expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0", kms: total_distance?.toStringAsFixed(2) ?? "0.0"),
+      floatingActionButton: TransparentFab(
+        expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0",
+        kms: total_distance?.toStringAsFixed(2) ?? "0.0",
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       backgroundColor: CupertinoColors.white,
       appBar: AppBar(
@@ -381,13 +456,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 Icons.logout_rounded,
                 color: CupertinoColors.destructiveRed,
               ),
-              onTap:(){
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                      (route) => false,
-                );
-              }
+              onTap: () {
+                showSignOutAlertDialog();
+              },
             ),
           ),
         ],
@@ -414,9 +485,9 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Good Morning!",
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+              Text(
+                getGreetingMessage(),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               Text(
                 userData?['name'] ?? '',
@@ -522,6 +593,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                             TodaysTripLogs[index]['to'] == "~"
                                                 ? true
                                                 : false,
+                                        assetImage:
+                                            TodaysTripLogs[index]['vehicle'] ==
+                                                    "2-Wheeler"
+                                                ? "Assets/bg_icon.png"
+                                                : "Assets/bg_icon2.png",
                                       )
                                       .animate()
                                       .fade(
