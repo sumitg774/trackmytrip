@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../Utils/AppColorTheme.dart';
+
 class SquareIconButton extends StatelessWidget {
   final VoidCallback onPressed;
   final IconData icon;
@@ -245,6 +247,112 @@ class _CustomSimpleButtonState extends State<CustomSimpleButton> {
               shape: WidgetStatePropertyAll(RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)))),
         )
+    );
+  }
+}
+class CustomSwitchContentButtons extends StatefulWidget {
+
+  late String firstBtnName;
+  late String secondBtnName;
+  late Widget firstWidget;
+  late Widget secondWidget;
+  final ValueChanged<bool>? onToggle;
+
+  CustomSwitchContentButtons(
+      {
+        super.key,
+        required this.firstWidget,
+        required this.secondWidget,
+        this.firstBtnName = "Single \nDate",
+        this.secondBtnName = "Multiple \nDates",
+        this.onToggle
+      });
+
+  @override
+  State<CustomSwitchContentButtons> createState() =>
+      _CustomSwitchContentButtonsState();
+}
+
+class _CustomSwitchContentButtonsState
+    extends State<CustomSwitchContentButtons> {
+  bool aorb = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    aorb = true;
+
+                  });
+                  widget.onToggle?.call(true);
+                },
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  child: Text(
+                    widget.firstBtnName,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                style: ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll(Colors.black),
+                  backgroundColor: WidgetStatePropertyAll(
+                    aorb == true ? AppColors.customBlue : AppColors.customWhite,
+                  ),
+                  elevation: WidgetStatePropertyAll(5),
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    aorb = false;
+                  });
+                  widget.onToggle?.call(false); // Notify parent
+
+                },
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  child: Text(
+                    widget.secondBtnName,
+                    style: TextStyle(fontSize: 16,
+                      fontWeight: FontWeight.bold,),textAlign: TextAlign.center,
+                  ),
+                ),
+                style: ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll(Colors.black),
+                  backgroundColor: WidgetStatePropertyAll(
+                    aorb == false ? AppColors.customBlue : AppColors.customWhite,
+                  ),
+                  elevation: WidgetStatePropertyAll(5),
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 30),
+        aorb ? widget.firstWidget : widget.secondWidget,
+      ],
     );
   }
 }

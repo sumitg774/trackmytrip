@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../Utils/AppColorTheme.dart';
 
@@ -351,6 +352,153 @@ class _CustomPasswordTextFieldState extends State<CustomPasswordTextField> {
         ),
       ),
       validator: widget.ValidateTextfield,
+    );
+  }
+}
+class DatePickerTextField extends StatefulWidget {
+
+  late TextEditingController controller;
+  late String label;
+  late Widget? leadingIcon;
+  late Widget? trialingIcon;
+  final bool prefillToday;
+  late String? Function(String?)? ValidateTextField;
+  late bool customBool;
+
+  DatePickerTextField(
+      {super.key,
+        required this.controller,
+        required this.label,
+        this.leadingIcon,
+        this.trialingIcon,
+        this.ValidateTextField,
+        required this.prefillToday,
+        this.customBool = false
+      });
+
+  @override
+  State<DatePickerTextField> createState() => _DatePickerTextFieldState();
+}
+
+class _DatePickerTextFieldState extends State<DatePickerTextField> {
+
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.prefillToday) {
+      // Set today's date if prefillToday is true
+      // widget.controller.text = DateTime.now().toString().split(" ")[0];
+      widget.controller.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+    }
+  }
+
+  Future<DateTime?> openDatePicker() {
+    return showDatePicker(
+      // initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime.now(),
+        initialEntryMode: DatePickerEntryMode.calendarOnly,
+        context: context,
+        builder: (context, child){
+          return Theme(data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.dark(
+                  primary: AppColors.customBlue,
+                  onPrimary: AppColors.customGrey,
+                  onSurface: AppColors.customWhite
+              ),
+              datePickerTheme: DatePickerThemeData(
+                backgroundColor: AppColors.customGrey,
+                headerBackgroundColor: AppColors.customGrey50,
+                headerForegroundColor: AppColors.customWhite,
+                weekdayStyle: TextStyle(color: AppColors.customBlue),
+                /*  todayBackgroundColor: WidgetStatePropertyAll(AppColors.customCircularBarGrey),
+            todayForegroundColor: WidgetStatePropertyAll(Colors.black),*/
+                confirmButtonStyle: ButtonStyle(
+                  elevation: WidgetStateProperty.all(0),
+                  backgroundColor:
+                  WidgetStateProperty.all(AppColors.customBlue),
+                  foregroundColor:
+                  WidgetStateProperty.all(Colors.white),
+                  shape: WidgetStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                cancelButtonStyle: ButtonStyle(
+                  elevation: WidgetStateProperty.all(0),
+                  backgroundColor:
+                  WidgetStateProperty.all(AppColors.customRed),
+                  foregroundColor:
+                  WidgetStateProperty.all(Colors.white),
+                  shape: WidgetStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50)
+                      ),
+                      backgroundColor: AppColors.customBlue,
+                      foregroundColor: AppColors.customWhite
+                  )
+              )
+          ),
+              child: child!);
+        }
+    ).then((value) {
+      setState(() {
+        widget.controller.text = DateFormat('dd-MM-yyyy').format(value!);
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      onTap: openDatePicker,
+      controller: widget.controller,
+      style: TextStyle(
+          color: Colors.black,
+      ),
+      readOnly: true,
+      cursorColor: AppColors.customBlue,
+      keyboardAppearance: Brightness.light,
+      keyboardType: TextInputType.text,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: AppColors.customWhite,
+        prefixIcon: widget.leadingIcon,
+        suffixIcon:
+        GestureDetector(onTap: openDatePicker, child: widget.trialingIcon),
+        label: Text(widget.label, style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.customRed, width: 2)),
+        errorStyle: TextStyle(color: AppColors.customRed,),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.customRed, width: 2)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.customBlue, width: 2)),
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          fontSize: 16,
+        ),
+      ),
+      validator: widget.ValidateTextField,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
     );
   }
 }
