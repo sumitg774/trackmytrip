@@ -9,7 +9,6 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
