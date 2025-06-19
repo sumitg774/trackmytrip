@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
@@ -185,7 +188,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                         );
                                         print("jnnjnnjnjn $trip");
 
-                                        return TripSummaryCard(
+                                        return ExpandableTripSummaryCard(
                                               from: trip['from'] ?? "~",
                                               to: trip['to'] ?? "~",
                                               departureTime:
@@ -205,6 +208,10 @@ class _HistoryPageState extends State<HistoryPage> {
                                                   trip['vehicle'] == "2-Wheeler"
                                                       ? "Assets/bg_icon.png"
                                                       : "Assets/bg_icon2.png",
+                                          startLat: trip["start"]['latitude'],
+                                          startLng: trip['start']['longitude'],
+                                          endLat: trip['end']['latitude'],
+                                          endLng: trip['end']['longitude'],
                                             )
                                             .animate()
                                             .fade(duration: 400.ms)

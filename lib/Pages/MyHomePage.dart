@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,7 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' as gmaps;
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Buttons.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
@@ -19,6 +23,7 @@ import 'package:uuid/uuid.dart';
 import 'LoginPage.dart';
 
 import '../Components/TextFields.dart';
+
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -39,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   TextEditingController DescriptionText = TextEditingController();
   double? total_distance;
   double? total_expenditure;
+  String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
 
   @override
   void initState() {
@@ -305,6 +311,61 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<double?> getRouteDistanceFromORS({
+    required double startLat,
+    required double startLng,
+    required double endLat,
+    required double endLng,
+  }) async {
+    final apiKey = API_KEY; // Replace with your actual ORS key
+    final url = 'https://api.openrouteservice.org/v2/directions/driving-car';
+
+    final body = {
+      "coordinates": [
+        [startLng, startLat], // longitude, latitude
+        [endLng, endLat],
+      ]
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Updated structure based on actual ORS response
+        if (data != null &&
+            data['routes'] != null &&
+            data['routes'] is List &&
+            data['routes'].isNotEmpty &&
+            data['routes'][0]['summary'] != null &&
+            data['routes'][0]['summary']['distance'] != null) {
+
+          final distanceInMeters = data['routes'][0]['summary']['distance'];
+          double distanceInKm = distanceInMeters / 1000;
+          print("Route Distance: $distanceInKm KM");
+          return distanceInKm;
+        } else {
+          print("Malformed ORS response: ${jsonEncode(data)}");
+        }
+      } else {
+        print("ORS API Error: ${response.statusCode}");
+        print("Response: ${response.body}");
+      }
+    } catch (e) {
+      print("ORS Exception: $e");
+    }
+    return null;
+  }
+
+
   Future<void> endTrip() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -326,6 +387,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
       final String to = DestinationLocation.text;
       final String desc = DescriptionText.text;
+
 
       String? collectionName =
           await StorageService.instance.getCollectionName();
@@ -356,18 +418,25 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       double startlatitude = tripsForToday[indexToUpdate]['start']['latitude'];
-      double startlongitude =
-          tripsForToday[indexToUpdate]['start']['longitude'];
+      double startlongitude = tripsForToday[indexToUpdate]['start']['longitude'];
 
-      double totalDistance =
-          Geolocator.distanceBetween(
-            startlatitude,
-            startlongitude,
-            endlatitude,
-            endlongitude,
-          ) /
-          1000;
-      print("::::total Distance:::: $totalDistance");
+      print("LAT AND LONGS REQ ::: $startlatitude, $startlongitude");
+
+      double? routeData = await getRouteDistanceFromORS(
+        startLat: startlatitude,
+        startLng: startlongitude,
+        endLat: endlatitude,
+        endLng: endlongitude,
+      );
+
+      if (routeData == null) {
+        print("Failed to get route distance from ORS");
+        return;
+      }
+
+      print("::::total Distance:::: ${routeData}");
+
+      double? totalDistance = routeData;
 
       double companyTravelAllowance =
           tripsForToday[indexToUpdate]['vehicle'] == "2-Wheeler" ? 5 : 8;
@@ -377,8 +446,8 @@ class _MyHomePageState extends State<MyHomePage> {
         "arrive": endtimestamp,
         "end": {"latitude": endlatitude, "longitude": endlongitude},
         "desc": desc,
-        "distance": totalDistance.toStringAsFixed(2),
-        "travel_cost": (totalDistance * companyTravelAllowance).toStringAsFixed(
+        "distance": totalDistance?.toStringAsFixed(2),
+        "travel_cost": (totalDistance! * companyTravelAllowance).toStringAsFixed(
           2,
         ),
       };
