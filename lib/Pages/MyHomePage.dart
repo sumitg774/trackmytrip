@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -249,8 +250,12 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  StreamSubscription<Position>? positionStream;
+  List<LatLng> routeCoordinates = [];
+
   Future<void> startTrip() async {
     final Uuid _uuid = Uuid();
+
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -270,9 +275,16 @@ class _MyHomePageState extends State<MyHomePage> {
       final String starttimestamp = DateFormat.Hm().format(DateTime.now());
       final String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
       final String? from =
-          selectedLocation == 'Other' ? OtherLocation.text : selectedLocation;
+      selectedLocation == 'Other' ? OtherLocation.text : selectedLocation;
       final String tripId = _uuid.v4();
       final String? vehicle = selectedVehicle;
+
+      String? collectionName = await StorageService.instance.getCollectionName();
+      String? uid = FirebaseAuth.instance.currentUser?.uid;
+
+      final userDocRef = FirebaseFirestore.instance
+          .collection(collectionName!)
+          .doc(uid);
 
       final Map<String, dynamic> TripLog = {
         "tripId": tripId,
@@ -281,35 +293,60 @@ class _MyHomePageState extends State<MyHomePage> {
         "depart": starttimestamp,
         "start": {"latitude": startlatitude, "longitude": startlongitude},
         "vehicle": vehicle,
+        "route": [], // This will hold tracked route
       };
-      String? collectionName =
-          await StorageService.instance.getCollectionName();
-      print("CO: $collectionName");
-
-      String? uid = FirebaseAuth.instance.currentUser?.uid;
-      print("U $uid");
-
-      final userDocRef = FirebaseFirestore.instance
-          .collection(collectionName!)
-          .doc(uid);
-      Map<String, dynamic> userData =
-          await CommonFunctions().getLoggedInUserInfo() ?? {};
-      Map<String, dynamic> triplogs = Map<String, dynamic>.from(
-        userData['triplogs'] ?? {},
-      );
-      List<dynamic> tripsForToday = List.from(triplogs[date] ?? []);
-      tripsForToday.add(TripLog);
 
       await userDocRef.set({
         'triplogs': {
           date: FieldValue.arrayUnion([TripLog]),
         },
+        'is_trip_started': true,
       }, SetOptions(merge: true));
+
       print("Firebase Updated Successfully");
+
+      // 👇 Start continuous tracking
+      positionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10, // meters
+        ),
+      ).listen((Position pos) async {
+        LatLng current = LatLng(pos.latitude, pos.longitude);
+        routeCoordinates.add(current);
+
+        // Create a route list of maps
+        final List<Map<String, dynamic>> routeList = routeCoordinates
+            .map((coord) => {
+          'latitude': coord.latitude,
+          'longitude': coord.longitude,
+        })
+            .toList();
+
+        // 👇 Update the specific trip log with route in Firebase
+        DocumentSnapshot snapshot = await userDocRef.get();
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        List<dynamic> todaysTrips = List.from(data['triplogs'][date] ?? []);
+
+        // Find and update the specific trip by tripId
+        for (int i = 0; i < todaysTrips.length; i++) {
+          if (todaysTrips[i]['tripId'] == tripId) {
+            todaysTrips[i]['route'] = routeList;
+            break;
+          }
+        }
+
+        await userDocRef.update({
+          'triplogs.$date': todaysTrips,
+        });
+
+        print("Route updated: ${current.latitude}, ${current.longitude}");
+      });
     } catch (e) {
-      print("An Error Occurred ${e}");
+      print("An Error Occurred: $e");
     }
   }
+
 
   Future<double?> getRouteDistanceFromORS({
     required double startLat,
@@ -349,8 +386,17 @@ class _MyHomePageState extends State<MyHomePage> {
             data['routes'][0]['summary']['distance'] != null) {
 
           final distanceInMeters = data['routes'][0]['summary']['distance'];
+          final geometry = data['routes'][0]['geometry']['coordinates'];
+
           double distanceInKm = distanceInMeters / 1000;
           print("Route Distance: $distanceInKm KM");
+
+          final List<LatLng> routePoints = geometry
+              .map<LatLng>((point) => LatLng(point[1], point[0]))
+              .toList();
+
+          print("ROUTE::::::::::: $routePoints");
+
           return distanceInKm;
         } else {
           print("Malformed ORS response: ${jsonEncode(data)}");
@@ -365,6 +411,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return null;
   }
 
+  Future<void> stopTrip() async {
+    await positionStream?.cancel();
+    print("Tracking stopped");
+  }
 
   Future<void> endTrip() async {
     try {
@@ -422,21 +472,35 @@ class _MyHomePageState extends State<MyHomePage> {
 
       print("LAT AND LONGS REQ ::: $startlatitude, $startlongitude");
 
-      double? routeData = await getRouteDistanceFromORS(
-        startLat: startlatitude,
-        startLng: startlongitude,
-        endLat: endlatitude,
-        endLng: endlongitude,
-      );
+      // double? routeData = await getRouteDistanceFromORS(
+      //   startLat: startlatitude,
+      //   startLng: startlongitude,
+      //   endLat: endlatitude,
+      //   endLng: endlongitude,
+      // );
 
-      if (routeData == null) {
-        print("Failed to get route distance from ORS");
-        return;
+      // if (routeData == null) {
+      //   print("Failed to get route distance from ORS");
+      //   return;
+      // }
+      //
+      // print("::::total Distance:::: ${routeData}");
+      //
+      // double? totalDistance = routeData;
+
+      await stopTrip();
+      double totalDistance = 0.0;
+
+      for (int i = 0; i < routeCoordinates.length - 1; i++) {
+       totalDistance += Geolocator.distanceBetween(
+          routeCoordinates[i].latitude,
+          routeCoordinates[i].longitude,
+          routeCoordinates[i + 1].latitude,
+          routeCoordinates[i + 1].longitude,
+        );
       }
 
-      print("::::total Distance:::: ${routeData}");
-
-      double? totalDistance = routeData;
+      print("Total distance traveled: ${totalDistance / 1000} km");
 
       double companyTravelAllowance =
           tripsForToday[indexToUpdate]['vehicle'] == "2-Wheeler" ? 5 : 8;
@@ -446,8 +510,8 @@ class _MyHomePageState extends State<MyHomePage> {
         "arrive": endtimestamp,
         "end": {"latitude": endlatitude, "longitude": endlongitude},
         "desc": desc,
-        "distance": totalDistance?.toStringAsFixed(2),
-        "travel_cost": (totalDistance! * companyTravelAllowance).toStringAsFixed(
+        "distance": (totalDistance/1000).toStringAsFixed(2),
+        "travel_cost": ((totalDistance/1000) * companyTravelAllowance).toStringAsFixed(
           2,
         ),
       };
