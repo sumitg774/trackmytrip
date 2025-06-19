@@ -130,7 +130,7 @@ class TransparentFab extends StatelessWidget {
                       Text("Today's Distance", style: TextStyle(fontSize: 12)),
                       SizedBox(height: 2),
                       Text(
-                        "${kms} kms",
+                        "${kms} km",
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,

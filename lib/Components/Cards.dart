@@ -133,7 +133,7 @@ class TripSummaryCard extends StatelessWidget {
                           const Icon(Icons.navigation_rounded, size: 18, color: Colors.blue),
                           const SizedBox(width: 4),
                           Text(
-                            distance,
+                            "$distance km",
                             style: const TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
@@ -180,8 +180,9 @@ class ExpandableTripSummaryCard extends StatelessWidget {
   final double startLng;
   final double endLat;
   final double endLng;
+  final List<dynamic> routeData;
 
-  const ExpandableTripSummaryCard({
+  ExpandableTripSummaryCard({
     super.key,
     required this.from,
     required this.to,
@@ -194,11 +195,17 @@ class ExpandableTripSummaryCard extends StatelessWidget {
     required this.startLat,
     required this.startLng,
     required this.endLat,
-    required this.endLng
+    required this.endLng,
+    required this.routeData
   });
 
   @override
   Widget build(BuildContext context) {
+
+    List<LatLng> polylinePoints = routeData.map((point) {
+        return LatLng(point['latitude'], point['longitude']);
+    }).toList();
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -281,7 +288,7 @@ class ExpandableTripSummaryCard extends StatelessWidget {
                         const Icon(Icons.navigation_rounded, size: 18, color: Colors.blue),
                         const SizedBox(width: 4),
                         Text(
-                          distance,
+                          "$distance km",
                           style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 14,
@@ -363,10 +370,7 @@ class ExpandableTripSummaryCard extends StatelessWidget {
                             PolylineLayer(
                               polylines: [
                                 Polyline(
-                                  points: [
-                                    LatLng(startLat, startLng),
-                                    LatLng(endLat, endLng),
-                                  ],
+                                  points: polylinePoints,
                                   color: CupertinoColors.activeBlue,
                                   strokeWidth: 3.2,
                                 ),

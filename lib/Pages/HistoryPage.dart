@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
 import '../Utils/CommonFunctions.dart';
@@ -22,6 +24,8 @@ class _HistoryPageState extends State<HistoryPage> {
   Map<String, dynamic> triplogs = {};
   bool isLoading = true;
   String? selectedDate;
+  String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
+
 
   @override
   void initState() {
@@ -81,6 +85,85 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
+  Future<double?> getRouteDistanceFromORS({
+    required double startLat,
+    required double startLng,
+    required double endLat,
+    required double endLng,
+  }) async {
+    final apiKey = API_KEY; // Replace with your actual ORS key
+    final url = 'https://api.openrouteservice.org/v2/directions/driving-car?geometry_format=geojson';
+
+    final body = {
+      "coordinates": [
+        [startLng, startLat], // longitude, latitude
+        [endLng, endLat],
+      ]
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Updated structure based on actual ORS response
+        if (data != null &&
+            data['routes'] != null &&
+            data['routes'] is List &&
+            data['routes'].isNotEmpty &&
+            data['routes'][0]['summary'] != null &&
+            data['routes'][0]['summary']['distance'] != null) {
+
+          final distanceInMeters = data['routes'][0]['summary']['distance'];
+
+
+          double distanceInKm = distanceInMeters / 1000;
+
+          void prettyPrintJson(Map<String, dynamic> data) {
+            const chunkSize = 800; // Adjust based on your console's limit
+            final prettyJson = const JsonEncoder.withIndent('  ').convert(data);
+
+            for (int i = 0; i < prettyJson.length; i += chunkSize) {
+              final end = (i + chunkSize < prettyJson.length)
+                  ? i + chunkSize
+                  : prettyJson.length;
+              print(prettyJson.substring(i, end));
+            }
+          }
+          // prettyPrintJson(data);
+          print("Route Distance: $distanceInKm KM");
+
+          final encodedPolyline = data['routes'][0]['geometry'];
+
+          PolylinePoints polylinePoints = PolylinePoints();
+          List<PointLatLng> decodedPoints = polylinePoints.decodePolyline(encodedPolyline);
+          // print("148: $decodedPoints");
+
+          final routePoints = decodedPoints.map((p) => LatLng(p.latitude, p.longitude)).toList();
+
+          print("151: $routePoints");
+          return distanceInKm;
+        } else {
+          print("Malformed ORS response: ${jsonEncode(data)}");
+        }
+      } else {
+        print("ORS API Error: ${response.statusCode}");
+        print("Response: ${response.body}");
+      }
+    } catch (e) {
+      print("ORS Exception: $e");
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     List<String> datesToShow =
@@ -95,6 +178,12 @@ class _HistoryPageState extends State<HistoryPage> {
 
     return Scaffold(
       backgroundColor: CupertinoColors.white,
+      // floatingActionButton: FloatingActionButton(onPressed: (){getRouteDistanceFromORS(
+      //   startLat: 49.41461,
+      //   startLng: 8.681495,
+      //   endLat: 49.020318,
+      //   endLng: 8.687872,
+      // );}),
       appBar: AppBar(
         toolbarHeight: 80,
         backgroundColor: CupertinoColors.white,
@@ -212,6 +301,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                           startLng: trip['start']['longitude'],
                                           endLat: trip['end']['latitude'],
                                           endLng: trip['end']['longitude'],
+                                          routeData: trip['route'],
                                             )
                                             .animate()
                                             .fade(duration: 400.ms)
