@@ -60,6 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     calculateTodaysTotalDistance();
     calculateTodaysTotalExpenditure();
+
     print(":::: $userData");
   }
 
