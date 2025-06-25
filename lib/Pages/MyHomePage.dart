@@ -25,7 +25,6 @@ import 'LoginPage.dart';
 
 import '../Components/TextFields.dart';
 
-
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
@@ -46,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   double? total_distance;
   double? total_expenditure;
   String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
+  bool checked = false;
 
   @override
   void initState() {
@@ -150,39 +150,86 @@ class _MyHomePageState extends State<MyHomePage> {
           ) {
             return SimpleAlertDialog(
               title: "Start Trip",
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomDropdown<String>(
-                    hint: "Select Your Vehicle",
-                    value: selectedVehicle,
-                    items: ["2-Wheeler", "4-Wheeler"],
-                    onChanged: (vehicle) {
-                      setState(() {
-                        selectedVehicle = vehicle;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  CustomDropdown<String>(
-                    hint: "Select Start Location",
-                    value: selectedLocation,
-                    items: ["Home", "Kibbcom Office", "Other"],
-                    onChanged: (val) {
-                      setState(() {
-                        selectedLocation = val;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  selectedLocation == "Other"
-                      ? CustomTextField(
-                        hintText: "Enter Other Location",
-                        controller: OtherLocation,
+              content:
+                  isLoading
+                      ? SizedBox(
+                        height: 50,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: CupertinoColors.activeBlue,
+                            backgroundColor: Colors.lightBlueAccent,
+                          ),
+                        ),
                       )
-                      : const SizedBox(height: 0),
-                ],
-              ),
+                      : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CustomDropdown<String>(
+                            hint: "Select Your Vehicle",
+                            value: selectedVehicle,
+                            items: ["2-Wheeler", "4-Wheeler"],
+                            onChanged: (vehicle) {
+                              setState(() {
+                                selectedVehicle = vehicle;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          CustomDropdown<String>(
+                            hint: "Select Start Location",
+                            value: selectedLocation,
+                            items: ["Home", "Kibbcom Office", "Other"],
+                            checked: checked,
+                            onChanged: (val) async {
+                              setState(() {
+                                selectedLocation = val;
+                                isLoading = true;
+                              });
+
+                              Map<String, LatLng> locationCoordinates = {
+                                "Home": LatLng(12.9715987, 77.594566),
+                                "Kibbcom Office": LatLng(12.955343, 77.714901),
+                              };
+
+                              if (val != "Other") {
+                                LatLng? target = locationCoordinates[val!];
+                                if (target == null) return;
+                                Position currentLocation =
+                                    await Geolocator.getCurrentPosition();
+                                double distancedifference =
+                                    Geolocator.distanceBetween(
+                                      currentLocation.latitude,
+                                      currentLocation.longitude,
+                                      target.latitude,
+                                      target.longitude,
+                                    );
+
+                                if (distancedifference < 100) {
+                                  setState(() {
+                                    checked = true;
+                                  });
+                                } else {
+                                  setState(() {
+                                    checked = false;
+                                  });
+                                }
+                              } else {
+                                setState(() {
+                                  checked = true;
+                                });
+                              }
+                              isLoading = false;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          selectedLocation == "Other"
+                              ? CustomTextField(
+                                hintText: "Enter Other Location",
+                                controller: OtherLocation,
+                              )
+                              : const SizedBox(height: 0),
+                        ],
+                      ),
               onConfirmButtonPressed: () async {
                 await startTrip();
                 setEnabledStatus(true);
@@ -191,6 +238,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Navigator.pop(context);
               },
               confirmBtnText: "Start",
+              confirmBtnState: !checked,
             );
           },
         );
@@ -224,7 +272,7 @@ class _MyHomePageState extends State<MyHomePage> {
             getUserData();
             Navigator.pop(context);
           },
-          confirmBtnText: "End",
+          confirmBtnText: "Save",
         );
       },
     );
@@ -279,11 +327,12 @@ class _MyHomePageState extends State<MyHomePage> {
       final String starttimestamp = DateFormat.Hm().format(DateTime.now());
       final String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
       final String? from =
-      selectedLocation == 'Other' ? OtherLocation.text : selectedLocation;
+          selectedLocation == 'Other' ? OtherLocation.text : selectedLocation;
       final String tripId = _uuid.v4();
       final String? vehicle = selectedVehicle;
 
-      String? collectionName = await StorageService.instance.getCollectionName();
+      String? collectionName =
+          await StorageService.instance.getCollectionName();
       String? uid = FirebaseAuth.instance.currentUser?.uid;
 
       final userDocRef = FirebaseFirestore.instance
@@ -309,23 +358,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
       print("Firebase Updated Successfully");
 
-      // 👇 Start continuous tracking
+      // Start continuous tracking
       positionStream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // meters
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 7,
         ),
       ).listen((Position pos) async {
         LatLng current = LatLng(pos.latitude, pos.longitude);
         routeCoordinates.add(current);
 
         // Create a route list of maps
-        final List<Map<String, dynamic>> routeList = routeCoordinates
-            .map((coord) => {
-          'latitude': coord.latitude,
-          'longitude': coord.longitude,
-        })
-            .toList();
+        final List<Map<String, dynamic>> routeList =
+            routeCoordinates
+                .map(
+                  (coord) => {
+                    'latitude': coord.latitude,
+                    'longitude': coord.longitude,
+                  },
+                )
+                .toList();
 
         // 👇 Update the specific trip log with route in Firebase
         DocumentSnapshot snapshot = await userDocRef.get();
@@ -340,9 +392,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         }
 
-        await userDocRef.update({
-          'triplogs.$date': todaysTrips,
-        });
+        await userDocRef.update({'triplogs.$date': todaysTrips});
 
         print("Route updated: ${current.latitude}, ${current.longitude}");
       });
@@ -350,7 +400,6 @@ class _MyHomePageState extends State<MyHomePage> {
       print("An Error Occurred: $e");
     }
   }
-
 
   Future<double?> getRouteDistanceFromORS({
     required double startLat,
@@ -365,16 +414,13 @@ class _MyHomePageState extends State<MyHomePage> {
       "coordinates": [
         [startLng, startLat], // longitude, latitude
         [endLng, endLat],
-      ]
+      ],
     };
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: {'Authorization': apiKey, 'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
 
@@ -388,16 +434,16 @@ class _MyHomePageState extends State<MyHomePage> {
             data['routes'].isNotEmpty &&
             data['routes'][0]['summary'] != null &&
             data['routes'][0]['summary']['distance'] != null) {
-
           final distanceInMeters = data['routes'][0]['summary']['distance'];
           final geometry = data['routes'][0]['geometry']['coordinates'];
 
           double distanceInKm = distanceInMeters / 1000;
           print("Route Distance: $distanceInKm KM");
 
-          final List<LatLng> routePoints = geometry
-              .map<LatLng>((point) => LatLng(point[1], point[0]))
-              .toList();
+          final List<LatLng> routePoints =
+              geometry
+                  .map<LatLng>((point) => LatLng(point[1], point[0]))
+                  .toList();
 
           print("ROUTE::::::::::: $routePoints");
 
@@ -442,7 +488,6 @@ class _MyHomePageState extends State<MyHomePage> {
       final String to = DestinationLocation.text;
       final String desc = DescriptionText.text;
 
-
       String? collectionName =
           await StorageService.instance.getCollectionName();
       String? uid = FirebaseAuth.instance.currentUser?.uid;
@@ -472,7 +517,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       double startlatitude = tripsForToday[indexToUpdate]['start']['latitude'];
-      double startlongitude = tripsForToday[indexToUpdate]['start']['longitude'];
+      double startlongitude =
+          tripsForToday[indexToUpdate]['start']['longitude'];
 
       print("LAT AND LONGS REQ ::: $startlatitude, $startlongitude");
 
@@ -496,7 +542,7 @@ class _MyHomePageState extends State<MyHomePage> {
       double totalDistance = 0.0;
 
       for (int i = 0; i < routeCoordinates.length - 1; i++) {
-       totalDistance += Geolocator.distanceBetween(
+        totalDistance += Geolocator.distanceBetween(
           routeCoordinates[i].latitude,
           routeCoordinates[i].longitude,
           routeCoordinates[i + 1].latitude,
@@ -514,10 +560,9 @@ class _MyHomePageState extends State<MyHomePage> {
         "arrive": endtimestamp,
         "end": {"latitude": endlatitude, "longitude": endlongitude},
         "desc": desc,
-        "distance": (totalDistance/1000).toStringAsFixed(2),
-        "travel_cost": ((totalDistance/1000) * companyTravelAllowance).toStringAsFixed(
-          2,
-        ),
+        "distance": (totalDistance / 1000).toStringAsFixed(2),
+        "travel_cost": ((totalDistance / 1000) * companyTravelAllowance)
+            .toStringAsFixed(2),
       };
 
       Map<String, dynamic> existingTrip = Map<String, dynamic>.from(
@@ -579,6 +624,8 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: TransparentFab(
         expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0",
         kms: total_distance?.toStringAsFixed(2) ?? "0.0",
+        text1: "Today's Expenditure",
+        text2: "Today's Distance",
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       backgroundColor: CupertinoColors.white,
@@ -586,6 +633,18 @@ class _MyHomePageState extends State<MyHomePage> {
         toolbarHeight: 100,
         scrolledUnderElevation: 0,
         actions: [
+          // Padding(
+          //   padding: const EdgeInsets.only(right: 22),
+          //   child: GestureDetector(
+          //     child: Icon(
+          //       Icons.share_location,
+          //       color: CupertinoColors.activeBlue,
+          //     ),
+          //     onTap: (){
+          //       Navigator.pushNamed(context, "/quick_locations");
+          //     },
+          //   ),
+          // ),
           Padding(
             padding: const EdgeInsets.only(right: 22.0),
             child: GestureDetector(

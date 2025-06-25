@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:trip_tracker_app/Pages/Splash.dart';
+import 'package:trip_tracker_app/Pages/QuickLocations.dart';
 import 'package:trip_tracker_app/Utils/StorageService.dart';
 
 import 'PageComponents/BottomNavBar.dart';
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(),
         '/splash':(context) => const SplashScreen()
+        '/quick_locations': (context) => QuickLocations()
       },
     );
   }

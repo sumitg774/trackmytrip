@@ -9,6 +9,7 @@ class SimpleAlertDialog extends StatefulWidget {
   Widget content;
   final VoidCallback onConfirmButtonPressed;
   String confirmBtnText;
+  bool confirmBtnState;
 
   SimpleAlertDialog({
     super.key,
@@ -16,6 +17,7 @@ class SimpleAlertDialog extends StatefulWidget {
     required this.content,
     required this.onConfirmButtonPressed,
     required this.confirmBtnText,
+    this.confirmBtnState = false
   });
 
   @override
@@ -23,21 +25,6 @@ class SimpleAlertDialog extends StatefulWidget {
 }
 
 class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
-  late TextEditingController OtherLocationText;
-  TextEditingController DestinationLocation = TextEditingController();
-  TextEditingController DescriptionText = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    OtherLocationText = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    OtherLocationText.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +65,7 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
               child: SimpleButton(
                 onPressed: widget.onConfirmButtonPressed,
                 buttonText: widget.confirmBtnText,
+                isDisabled: widget.confirmBtnState,
               ),
             ),
           ],

@@ -9,13 +9,15 @@ class CustomDropdown<T> extends StatelessWidget {
   final T? value;
   final List<T> items;
   final void Function(T?) onChanged;
+  bool checked;
 
-  const CustomDropdown({
+   CustomDropdown({
     Key? key,
     required this.hint,
     required this.value,
     required this.items,
     required this.onChanged,
+    this.checked = false
   }) : super(key: key);
 
   @override
@@ -45,7 +47,7 @@ class CustomDropdown<T> extends StatelessWidget {
           borderSide: BorderSide(color: CupertinoColors.activeBlue, width: 1.2),
         ),
       ),
-      icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[600]),
+      icon: checked ? Icon(Icons.check_rounded, color: CupertinoColors.systemGreen,):Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[600]),
       dropdownColor: Colors.white,
       style: const TextStyle(
         fontSize: 15,
@@ -68,6 +70,7 @@ class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType keyboardType;
   final bool obscureText;
+  final bool suffixIcon;
 
   CustomTextField({
     Key? key,
@@ -75,6 +78,7 @@ class CustomTextField extends StatelessWidget {
     required this.controller,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
+    this.suffixIcon = false
   }) : super(key: key);
 
   @override
@@ -89,6 +93,7 @@ class CustomTextField extends StatelessWidget {
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
+        // suffixIcon: suffixIcon ? Icon(Icons.share_location) : SizedBox(),
         hintText: hintText,
         hintStyle: TextStyle(
           fontSize: 15,
@@ -107,6 +112,61 @@ class CustomTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide(color: Colors.blueAccent, width: 1.2),
+        ),
+      ),
+      cursorColor: CupertinoColors.activeBlue,
+    );
+  }
+}
+
+class CustomTextField2 extends StatelessWidget {
+  final String hintText;
+  final TextEditingController controller;
+  final TextInputType keyboardType;
+  final bool obscureText;
+  final bool suffixIcon;
+
+  CustomTextField2({
+    Key? key,
+    required this.hintText,
+    required this.controller,
+    this.keyboardType = TextInputType.text,
+    this.obscureText = false,
+    this.suffixIcon = false
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      style: const TextStyle(
+        fontSize: 12,
+        color: Colors.black87,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        // suffixIcon: suffixIcon ? Icon(Icons.share_location) : SizedBox(),
+        hintText: hintText,
+        hintStyle: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[500],
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: Colors.blueAccent, width: 1.2),
         ),
       ),
@@ -464,20 +524,20 @@ class _DatePickerTextFieldState extends State<DatePickerTextField> {
     return TextFormField(
       onTap: openDatePicker,
       controller: widget.controller,
-      style: TextStyle(
-          color: Colors.black,
+      style: const TextStyle(
+        fontSize: 15,
+        color: Colors.black87,
+        fontWeight: FontWeight.w500,
       ),
       readOnly: true,
       cursorColor: AppColors.customBlue,
       keyboardAppearance: Brightness.light,
       keyboardType: TextInputType.text,
       decoration: InputDecoration(
-        filled: true,
-        fillColor: AppColors.customWhite,
         prefixIcon: widget.leadingIcon,
+        hintText: widget.label,
         suffixIcon:
         GestureDetector(onTap: openDatePicker, child: widget.trialingIcon),
-        label: Text(widget.label, style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),),
         errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: AppColors.customRed, width: 2)),
@@ -485,12 +545,21 @@ class _DatePickerTextFieldState extends State<DatePickerTextField> {
         focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: AppColors.customRed, width: 2)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.customBlue, width: 2)),
+          borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide(color: Colors.blueAccent, width: 1.2),
+        ),
         labelStyle: TextStyle(
           fontWeight: FontWeight.bold,
           color: Colors.white,
