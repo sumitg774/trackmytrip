@@ -73,98 +73,111 @@ class SquareIconButton extends StatelessWidget {
 class TransparentFab extends StatelessWidget {
   final String expenditure;
   final String kms;
+  final String text1;
+  final String text2;
 
   const TransparentFab({
     super.key,
     required this.expenditure,
     required this.kms,
+    required this.text1,
+    required this.text2
   });
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 5),
-              decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.5),
-          width: 0.5,
-        )
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Column(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(
+                    left: 10,
+                    right: 10,
+                    top: 10,
+                    bottom: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.5),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text(
-                        "Today's Expenditure",
-                        style: TextStyle(fontSize: 12),
+                      Column(
+                        children: [
+                          Text(
+                            text1,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "₹ $expenditure",
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.activeBlue,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        "₹ $expenditure",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: CupertinoColors.activeBlue,
-                        ),
+                      // Vertical Divider
+                      Container(
+                        height: 30,
+                        width: 1.5,
+                        margin: const EdgeInsets.symmetric(horizontal: 10),
+                        color: CupertinoColors.activeBlue,
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            text2,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "${kms} km",
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: CupertinoColors.activeBlue,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  // Vertical Divider
-                  Container(
-                    height: 30,
-                    width: 1.5,
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    color: CupertinoColors.activeBlue,
-                  ),
-                  Column(
-                    children: [
-                      Text("Today's Distance", style: TextStyle(fontSize: 12)),
-                      SizedBox(height: 2),
-                      Text(
-                        "${kms} km",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: CupertinoColors.activeBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              )
-
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    ).animate()
+          ),
+        )
+        .animate()
         .slideY(begin: 1.0, end: 0.0, duration: 600.ms, curve: Curves.easeOut)
         .fadeIn(duration: 900.ms, curve: Curves.easeOut);
   }
 }
 
-
 class SimpleButton extends StatelessWidget {
   final String buttonText;
   final VoidCallback onPressed;
   bool isCancelButton;
+  bool isDisabled;
 
   SimpleButton({
     Key? key,
     required this.buttonText,
     required this.onPressed,
-    this.isCancelButton = false
+    this.isCancelButton = false,
+    this.isDisabled = false
   }) : super(key: key);
 
   @override
@@ -173,16 +186,28 @@ class SimpleButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: onPressed,
+        onTap: isDisabled ? (){} : onPressed,
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-              color: isCancelButton ? CupertinoColors.systemRed.withOpacity(0.4) : CupertinoColors.systemBlue.withOpacity(0.4),
-              border: Border.all(
-                color: isCancelButton ? CupertinoColors.systemRed.withOpacity(0.5) : CupertinoColors.systemBlue.withOpacity(0.5),
-                width: 0.5,
-              ),
-            borderRadius: BorderRadius.circular(25)
+            color:
+                isDisabled ?
+                CupertinoColors.systemGrey2.withOpacity(0.4)
+                :
+                isCancelButton
+                    ? CupertinoColors.systemRed.withOpacity(0.4)
+                    : CupertinoColors.systemBlue.withOpacity(0.4),
+            border: Border.all(
+              color:
+              isDisabled ?
+              CupertinoColors.systemGrey.withOpacity(0.4)
+                  :
+                  isCancelButton
+                      ? CupertinoColors.systemRed.withOpacity(0.5)
+                      : CupertinoColors.systemBlue.withOpacity(0.5),
+              width: 0.5,
+            ),
+            borderRadius: BorderRadius.circular(25),
           ),
           child: Center(
             child: Text(
@@ -190,7 +215,13 @@ class SimpleButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isCancelButton ?CupertinoColors.destructiveRed : CupertinoColors.activeBlue,
+                color:
+                isDisabled ?
+                CupertinoColors.systemGrey.withOpacity(0.8)
+                    :
+                    isCancelButton
+                        ? CupertinoColors.destructiveRed
+                        : CupertinoColors.activeBlue,
               ),
             ),
           ),
@@ -200,73 +231,73 @@ class SimpleButton extends StatelessWidget {
   }
 }
 
-class CustomSimpleButton extends StatefulWidget {
 
-  late String btnName;
-  late VoidCallback btnFunction;
-  late Icon? btnIcon;
-  late Color btnColor;
-  late IconAlignment iconAlignment;
-  late FontWeight btnNameWeight;
+class SimpleButton2 extends StatelessWidget {
+  final String buttonText;
+  final VoidCallback onPressed;
+  final bool isCancelButton;
 
-  CustomSimpleButton({super.key,
-    required this.btnName,
-    required this.btnFunction,
-    this.btnIcon,
-    this.btnColor = Colors.redAccent,
-    this.iconAlignment = IconAlignment.start,
-    this.btnNameWeight = FontWeight.w600
-  });
+  const SimpleButton2({
+    Key? key,
+    required this.buttonText,
+    required this.onPressed,
+    this.isCancelButton = false,
+  }) : super(key: key);
 
-  @override
-  State<CustomSimpleButton> createState() => _CustomSimpleButtonState();
-}
-
-class _CustomSimpleButtonState extends State<CustomSimpleButton> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-        width: double.infinity,
-        child: TextButton.icon(
-          onPressed: widget.btnFunction,
-          label: Text(
-            widget.btnName,
+
+
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical:5 ,horizontal: 20),
+        decoration: BoxDecoration(
+          color:isCancelButton
+            ?
+          CupertinoColors.systemGrey6
+            :CupertinoColors.activeBlue.withOpacity(0.4),
+
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color:
+            isCancelButton
+                ? CupertinoColors.systemGrey6
+                : CupertinoColors.systemBlue.withOpacity(0.4),
+            width: 0.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            buttonText,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: widget.btnNameWeight,
+              color: isCancelButton ? CupertinoColors.systemGrey : CupertinoColors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500
             ),
           ),
-          icon: widget.btnIcon,
-          iconAlignment: widget.iconAlignment,
-          style: ButtonStyle(
-              backgroundColor:
-              WidgetStatePropertyAll(widget.btnColor),
-              foregroundColor: WidgetStatePropertyAll(Colors.white),
-              padding: WidgetStatePropertyAll(
-                  EdgeInsets.symmetric(vertical: 10)),
-              shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)))),
-        )
+        ),
+      ),
     );
   }
 }
-class CustomSwitchContentButtons extends StatefulWidget {
 
+
+class CustomSwitchContentButtons extends StatefulWidget {
   late String firstBtnName;
   late String secondBtnName;
   late Widget firstWidget;
   late Widget secondWidget;
   final ValueChanged<bool>? onToggle;
 
-  CustomSwitchContentButtons(
-      {
-        super.key,
-        required this.firstWidget,
-        required this.secondWidget,
-        this.firstBtnName = "Single \nDate",
-        this.secondBtnName = "Multiple \nDates",
-        this.onToggle
-      });
+  CustomSwitchContentButtons({
+    super.key,
+    required this.firstWidget,
+    required this.secondWidget,
+    this.firstBtnName = "Single",
+    this.secondBtnName = "Range",
+    this.onToggle,
+  });
 
   @override
   State<CustomSwitchContentButtons> createState() =>
@@ -281,74 +312,42 @@ class _CustomSwitchContentButtonsState
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    aorb = true;
+        Container(
+          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey6,
+            borderRadius: BorderRadius.circular(25)
 
-                  });
-                  widget.onToggle?.call(true);
-                },
-                label: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10.0),
-                  child: Text(
-                    widget.firstBtnName,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                style: ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll(Colors.black),
-                  backgroundColor: WidgetStatePropertyAll(
-                    aorb == true ? AppColors.customBlue : AppColors.customWhite,
-                  ),
-                  elevation: WidgetStatePropertyAll(5),
-                  shape: WidgetStatePropertyAll(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: SimpleButton2(
+                  buttonText: widget.firstBtnName,
+                  isCancelButton: !aorb,
+                  onPressed: () {
+                    setState(() {
+                      aorb = true;
+                    });
+                    widget.onToggle?.call(true);
+                  },
                 ),
               ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    aorb = false;
-                  });
-                  widget.onToggle?.call(false); // Notify parent
-
-                },
-                label: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10.0),
-                  child: Text(
-                    widget.secondBtnName,
-                    style: TextStyle(fontSize: 16,
-                      fontWeight: FontWeight.bold,),textAlign: TextAlign.center,
-                  ),
-                ),
-                style: ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll(Colors.black),
-                  backgroundColor: WidgetStatePropertyAll(
-                    aorb == false ? AppColors.customBlue : AppColors.customWhite,
-                  ),
-                  elevation: WidgetStatePropertyAll(5),
-                  shape: WidgetStatePropertyAll(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+              SizedBox(width: 12),
+              Expanded(
+                child: SimpleButton2(
+                  buttonText: widget.secondBtnName,
+                  isCancelButton: aorb,
+                  onPressed: () {
+                    setState(() {
+                      aorb = false;
+                    });
+                    widget.onToggle?.call(false); // Notify parent
+                  },
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         SizedBox(height: 30),
         aorb ? widget.firstWidget : widget.secondWidget,
@@ -356,4 +355,10 @@ class _CustomSwitchContentButtonsState
     );
   }
 }
+
+
+
+
+
+
 

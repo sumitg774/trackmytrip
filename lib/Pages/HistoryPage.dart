@@ -34,6 +34,10 @@ class _HistoryPageState extends State<HistoryPage> {
   bool isLoading = true;
   String? selectedDate;
   String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
+  bool showSummary = false;
+  double total_expenditure = 0.0;
+  double total_distance = 0.0;
+  String? selectedVehicleFilter;
 
   String? selectedDate1;
   List<String> customSelectedDates=[];
@@ -42,6 +46,13 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
     getUserData();
+    setShowSummary(false);
+  }
+
+  void setShowSummary(bool value){
+    setState(() {
+      showSummary = value;
+    });
   }
 
   List<String> getLastFiveDates() {
@@ -104,7 +115,7 @@ class _HistoryPageState extends State<HistoryPage> {
         return StatefulBuilder(
           builder: (BuildContext context, void Function(void Function()) setDialogState) {
             return SimpleAlertDialog(
-              title: "Select the date",
+              title: "Date Selection",
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -115,7 +126,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           controller: singleDate,
                           label: "Pick a Date",
                           prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_today, color: AppColors.customBlue),
+                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
                           customBool: true,
                         ),
                         SizedBox(height: 30),
@@ -127,7 +138,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           controller: fromDate,
                           label: "From",
                           prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_today, color: AppColors.customBlue),
+                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
                           customBool: true,
                         ),
                         SizedBox(height: 30),
@@ -135,7 +146,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           controller: toDate,
                           label: "To",
                           prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_today, color: AppColors.customBlue),
+                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
                           customBool: true,
                         ),
                         SizedBox(height: 30),
@@ -155,7 +166,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                 ],
               ),
-              confirmBtnText: "Submit",
+              confirmBtnText: "Select",
                 onConfirmButtonPressed: () {
                   try {
                     if (isSingleDateMode && singleDate.text.isNotEmpty) {
@@ -183,6 +194,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   } catch (e) {
                     print("❌ Error parsing date: $e");
                   }
+                  setShowSummary(true);
                 }
 
 
@@ -313,32 +325,100 @@ class _HistoryPageState extends State<HistoryPage> {
           .format(DateTime.now().subtract(Duration(days: i)));
     });
 
+    print("Dates to show: $datesToShow");
+
+    void calculateTodaysTotalDistanceAndExpenditure() {
+      double total_expenditure2 = 0.0;
+      double total_distance2 = 0.0;
+
+      for (String date in datesToShow) {
+        final logs = triplogs[date];
+
+        if (logs != null && logs is List) {
+          for (var log in logs) {
+            final expenditure = double.tryParse(log['travel_cost'].toString());
+            final distance = double.tryParse(log['distance'].toString());
+            if (expenditure != null && distance != null) {
+              total_expenditure2 += expenditure;
+              total_distance2 += distance;
+            }
+          }
+        } else {
+          print("No trip logs found for $date");
+        }
+      }
+
+      setState(() {
+        total_expenditure = total_expenditure2;
+        total_distance = total_distance2;
+      });
+
+      print("TOTAL:EXP =  $total_expenditure");
+      print("TOTAL:DIST = $total_distance");
+    }
+
+    calculateTodaysTotalDistanceAndExpenditure();
+    bool twoWheeler = false;
+    bool fourWheeler = false;
+
+
     return Scaffold(
       backgroundColor: CupertinoColors.white,
+      floatingActionButton: showSummary ? TransparentFab(
+        expenditure: total_expenditure.toStringAsFixed(2) ?? "0.0",
+        kms: total_distance.toStringAsFixed(2) ?? "0.0",
+        text1: "Total Expenditure",
+        text2: "Total Distance",
+      ): SizedBox(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       appBar: AppBar(
         toolbarHeight: 80,
+        scrolledUnderElevation: 0,
         backgroundColor: CupertinoColors.white,
+        actionsPadding: EdgeInsets.only(right: 22),
+        actions: [
+          //TODO Needs Work Yet
+          PopupMenuButton<String>(
+            surfaceTintColor: CupertinoColors.white,
+            icon: Icon(Icons.filter_alt_rounded, color: CupertinoColors.activeBlue),
+            onSelected: (value) {
+              setState(() {
+                selectedVehicleFilter = value;
+              });
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(value: "2-Wheeler", child: Row(
+                children: [
+                  Checkbox(value: true, onChanged: (bool? value) {  },),
+                  Text("2-Wheeler"),
+                ],
+              )),
+              PopupMenuItem(value: "4-Wheeler", child: Row(
+                children: [
+                  Checkbox(value: true, onChanged: (bool? value) { value = false; },),
+                  Text("4-Wheeler"),
+                ],
+              )),
+            ],
+          ),
+
+          IconButton(
+            onPressed: OpenSetDateDialog,
+            icon: const Icon(
+              Icons.calendar_month_outlined,
+              color: Colors.black87,
+            ),
+          ),
+        ],
         title: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Recent",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              IconButton(
-                onPressed: OpenSetDateDialog,
-                icon: const Icon(
-                  Icons.calendar_month_outlined,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
+          child: const Text(
+            "Recent",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
           ),
         ),
       ),
@@ -406,7 +486,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                         final trip = Map<String, dynamic>.from(
                                           dayTrips[tripIndex],
                                         );
-                                        print("jnnjnnjnjn $trip");
+                                        print("trip info ${trip['distance']}");
 
                                         return ExpandableTripSummaryCard(
                                               from: trip['from'] ?? "~",
@@ -428,11 +508,11 @@ class _HistoryPageState extends State<HistoryPage> {
                                                   trip['vehicle'] == "2-Wheeler"
                                                       ? "Assets/bg_icon.png"
                                                       : "Assets/bg_icon2.png",
-                                          startLat: trip["start"]['latitude'],
-                                          startLng: trip['start']['longitude'],
-                                          endLat: trip['end']['latitude'],
-                                          endLng: trip['end']['longitude'],
-                                          routeData: trip['route'],
+                                            startLat: trip["start"]?['latitude'] ?? 0.0,
+                                            startLng: trip["start"]?['longitude'] ?? 0.0,
+                                            endLat: trip["end"]?['latitude'] ?? 0.0,
+                                            endLng: trip["end"]?['longitude'] ?? 0.0,
+                                            routeData: trip['route'] ?? []
                                             )
                                             .animate()
                                             .fade(duration: 400.ms)
