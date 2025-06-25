@@ -1,7 +1,4 @@
 import 'dart:convert';
-
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -13,6 +10,7 @@ import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
 import '../Components/Buttons.dart';
+import '../Components/HeatMapCalender.dart';
 import '../Components/TextFields.dart';
 import '../Utils/AppColorTheme.dart';
 import '../Utils/CommonFunctions.dart';
@@ -39,6 +37,7 @@ class _HistoryPageState extends State<HistoryPage> {
   double total_distance = 0.0;
   String? selectedVehicleFilter;
 
+  Map<DateTime, int?> dataforHeatMap = {};
   String? selectedDate1;
   List<String> customSelectedDates=[];
 
@@ -53,6 +52,7 @@ class _HistoryPageState extends State<HistoryPage> {
     setState(() {
       showSummary = value;
     });
+    final bool showCalender = true;
   }
 
   List<String> getLastFiveDates() {
@@ -75,37 +75,6 @@ class _HistoryPageState extends State<HistoryPage> {
 
     print(":::: $userData");
   }
-
-  // Future<void> _selectDate() async {
-  //   final DateTime? picked = await showDatePicker(
-  //     context: context,
-  //     initialDate: DateTime.now(),
-  //     firstDate: DateTime(2000),
-  //     lastDate: DateTime.now(),
-  //     builder: (context, child) {
-  //       return Theme(
-  //         data: Theme.of(context).copyWith(
-  //           colorScheme: ColorScheme.light(
-  //             primary: Colors.blue,
-  //             onPrimary: Colors.white,
-  //             onSurface: Colors.black,
-  //           ),
-  //           textButtonTheme: TextButtonThemeData(
-  //             style: TextButton.styleFrom(foregroundColor: Colors.blue),
-  //           ),
-  //         ),
-  //         child: child!,
-  //       );
-  //     },
-  //   );
-  //
-  //   if (picked != null) {
-  //     setState(() {
-  //       selectedDate = DateFormat('dd-MM-yyyy').format(picked);
-  //     });
-  //   }
-  // }
-
 
   Future<void> OpenSetDateDialog() async {
     final result = await showDialog<List<String>>(
@@ -166,7 +135,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                   ],
                 ),
-                confirmBtnText: "Select",
+                confirmBtnText: "Submit",
                 onConfirmButtonPressed: () {
                   try {
                     if (isSingleDateMode && singleDate.text.isNotEmpty) {
@@ -196,39 +165,11 @@ class _HistoryPageState extends State<HistoryPage> {
                   }
                   setShowSummary(true);
                 }
-
-
-              // onConfirmButtonPressed: () {
-              //   if (isSingleDateMode && singleDate.text.isNotEmpty) {
-              //     final picked = DateFormat('yyyy-MM-dd').parseStrict(singleDate.text);
-              //     final formatted = DateFormat('dd-MM-yyyy').format(picked);
-              //     Navigator.of(context).pop([formatted]); // return single date
-              //   } else if (fromDate.text.isNotEmpty && toDate.text.isNotEmpty) {
-              //     final start = DateFormat('yyyy-MM-dd').parseStrict(fromDate.text);
-              //     final end = DateFormat('yyyy-MM-dd').parseStrict(toDate.text);
-              //
-              //     if (start.isAfter(end)) {
-              //       print("⚠️ Invalid date range.");
-              //       return;
-              //     }
-              //
-              //     final rangeDates = List.generate(
-              //       end.difference(start).inDays + 1,
-              //           (i) => DateFormat('dd-MM-yyyy').format(start.add(Duration(days: i))),
-              //     );
-              //
-              //     Navigator.of(context).pop(rangeDates); // return range
-              //   } else {
-              //     print("⚠️ Please select valid date(s).");
-              //   }
-              // },
             );
           },
         );
       },
     );
-
-    // 👇🏻 Update main state after dialog closes
     if (result != null && result.isNotEmpty) {
       setState(() {
         customSelectedDates = result;
@@ -325,6 +266,28 @@ class _HistoryPageState extends State<HistoryPage> {
           .format(DateTime.now().subtract(Duration(days: i)));
     });
 
+    Map<String, dynamic> triplogs = Map<String, dynamic>.from(
+      userData?['triplogs'] ?? {},
+    );
+
+    // Populate heat map data
+    triplogs.forEach((dateStr, entries) {
+      if (entries != null && entries.isNotEmpty) {
+        final parts = dateStr.split('-');
+        final date = DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+        dataforHeatMap[date] = 1;
+      }
+    });
+
+    // Check if custom selected dates have no logs
+    bool noLogsForCustomDates = customSelectedDates.isNotEmpty &&
+        customSelectedDates.every((date) =>
+        (triplogs[date] == null || (triplogs[date] as List).isEmpty));
+
     print("Dates to show: $datesToShow");
 
     void calculateTodaysTotalDistanceAndExpenditure() {
@@ -360,7 +323,6 @@ class _HistoryPageState extends State<HistoryPage> {
     calculateTodaysTotalDistanceAndExpenditure();
     bool twoWheeler = false;
     bool fourWheeler = false;
-
 
     return Scaffold(
       backgroundColor: CupertinoColors.white,
@@ -422,8 +384,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ),
       ),
-      body:
-      isLoading
+      body: isLoading
           ? Center(
         child: CircularProgressIndicator(
           color: CupertinoColors.activeBlue,
@@ -433,108 +394,110 @@ class _HistoryPageState extends State<HistoryPage> {
           : Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10.0),
         child: SingleChildScrollView(
-          child: ListView.builder(
-            itemCount: datesToShow.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (context, dateIndex) {
-              String date = datesToShow[dateIndex];
-              List<dynamic> dayTrips = triplogs[date] ?? [];
+          child: Column(
+            children: [
+              HeatMapCalendarWidget(
+                dateTimeMap: dataforHeatMap,
+                showCalender: true,
+                onDateSelected: (DateTime date, int count) {
+                  String formattedDate =
+                  DateFormat('dd-MM-yyyy').format(date);
+                  setState(() {
+                    customSelectedDates = [formattedDate];
+                    // date1 =datesToShow as String;
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SimpleContainer(
-                    title: date,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        dayTrips.isEmpty
-                            ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8.0,
-                            ),
-                            child: Text(
-                              "No logs to show!",
-                              style: TextStyle(
-                                color:
-                                CupertinoColors.systemGrey2,
-                              ),
-                            ),
-                          )
-                              .animate()
-                              .fade(duration: 400.ms)
-                              .scale(
-                            begin: Offset(0.8, 0.8),
-                            end: Offset(1, 1),
-                            curve: Curves.easeOut,
-                          )
-                              .moveY(
-                            begin: 30,
-                            end: 0,
-                            duration: 500.ms,
-                            curve: Curves.easeOutBack,
-                          ),
-                        )
-                            : ListView.builder(
-                          shrinkWrap: true,
-                          physics:
-                          const NeverScrollableScrollPhysics(),
-                          itemCount: dayTrips.length,
-                          itemBuilder: (context, tripIndex) {
-                            final trip = Map<String, dynamic>.from(
-                              dayTrips[tripIndex],
-                            );
-                            print("trip info ${trip['distance']}");
+              const SizedBox(height: 10),
 
-                            return ExpandableTripSummaryCard(
-                                from: trip['from'] ?? "~",
-                                to: trip['to'] ?? "~",
-                                departureTime:
-                                trip['depart'] ?? "~",
-                                arrivalTime:
-                                trip['arrive'] ?? "~",
-                                distance:
-                                trip['distance']
-                                    ?.toString() ??
-                                    "~",
-                                expense:
-                                trip['travel_cost']
-                                    ?.toString() ??
-                                    "~",
-                                riding: trip['to'] == "~",
-                                assetImage:
-                                trip['vehicle'] == "2-Wheeler"
-                                    ? "Assets/bg_icon.png"
-                                    : "Assets/bg_icon2.png",
-                                startLat: trip["start"]?['latitude'] ?? 0.0,
-                                startLng: trip["start"]?['longitude'] ?? 0.0,
-                                endLat: trip["end"]?['latitude'] ?? 0.0,
-                                endLng: trip["end"]?['longitude'] ?? 0.0,
-                                routeData: trip['route'] ?? []
-                            )
-                                .animate()
-                                .fade(duration: 400.ms)
-                                .scale(
-                              begin: Offset(0.8, 0.8),
-                              end: Offset(1, 1),
-                              curve: Curves.easeOut,
-                            )
-                                .moveY(
-                              begin: 30,
-                              end: 0,
-                              duration: 500.ms,
-                              curve: Curves.easeOutBack,
-                            );
-                          },
-                        ),
-                      ],
+              if (noLogsForCustomDates)
+                Padding(
+                  padding: const EdgeInsets.only(top: 30),
+
+                  child: Center(
+                    child: Text(
+                      "No logs to show!",
+                      style: TextStyle(
+                        color: CupertinoColors.systemGrey2,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                ],
-              );
-            },
+                )
+              else
+                ListView.builder(
+                  itemCount: datesToShow.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, dateIndex) {
+                    String date = datesToShow[dateIndex];
+                    List<dynamic> dayTrips = triplogs[date] ?? [];
+                    if (dayTrips.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SimpleContainer(
+                          title: date,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics:
+                                const NeverScrollableScrollPhysics(),
+                                itemCount: dayTrips.length,
+                                itemBuilder: (context, tripIndex) {
+                                  final trip = Map<String, dynamic>.from(
+                                      dayTrips[tripIndex]);
+
+                                  return ExpandableTripSummaryCard(
+                                    from: trip['from'] ?? "~",
+                                    to: trip['to'] ?? "~",
+                                    departureTime: trip['depart'] ?? "~",
+                                    arrivalTime: trip['arrive'] ?? "~",
+                                    distance:
+                                    trip['distance']?.toString() ?? "~",
+                                    expense: trip['travel_cost']
+                                        ?.toString() ??
+                                        "~",
+                                    riding: trip['to'] == "~",
+                                    assetImage: trip['vehicle'] ==
+                                        "2-Wheeler"
+                                        ? "Assets/bg_icon.png"
+                                        : "Assets/bg_icon2.png",
+                                    startLat: trip["start"]['latitude'],
+                                    startLng: trip['start']['longitude'],
+                                    endLat: trip['end']['latitude'],
+                                    endLng: trip['end']['longitude'],
+                                    routeData: trip['route'],
+                                  )
+                                      .animate()
+                                      .fade(duration: 400.ms)
+                                      .scale(
+                                    begin: Offset(0.8, 0.8),
+                                    end: Offset(1, 1),
+                                    curve: Curves.easeOut,
+                                  )
+                                      .moveY(
+                                    begin: 30,
+                                    end: 0,
+                                    duration: 500.ms,
+                                    curve: Curves.easeOutBack,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+            ],
           ),
         ),
       ),
