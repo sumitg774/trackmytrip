@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const BottomNavBar(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(),
-        '/splash':(context) => const SplashScreen()
+        '/splash':(context) => const SplashScreen(),
         '/quick_locations': (context) => QuickLocations()
       },
     );
