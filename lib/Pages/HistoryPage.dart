@@ -1,7 +1,4 @@
 import 'dart:convert';
-
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -13,10 +10,11 @@ import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
 import '../Components/Buttons.dart';
+import '../Components/HeatMapCalender.dart';
 import '../Components/TextFields.dart';
 import '../Utils/AppColorTheme.dart';
 import '../Utils/CommonFunctions.dart';
-import 'dart:math';
+
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -34,23 +32,27 @@ class _HistoryPageState extends State<HistoryPage> {
   bool isLoading = true;
   String? selectedDate;
   String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
-
+  Map<DateTime, int?> dataforHeatMap = {};
   String? selectedDate1;
-  List<String> customSelectedDates=[];
+  List<String> customSelectedDates = [];
+
+
+
 
   @override
   void initState() {
     super.initState();
     getUserData();
+    final bool showCalender = true;
   }
 
-  List<String> getLastFiveDates() {
-    return List.generate(5, (i) {
-      return DateFormat(
-        'dd-MM-yyyy',
-      ).format(DateTime.now().subtract(Duration(days: i)));
-    });
-  }
+  // List<String> getLastFiveDates() {
+  //   return List.generate(5, (i) {
+  //     return DateFormat(
+  //       'dd-MM-yyyy',
+  //     ).format(DateTime.now().subtract(Duration(days: i)));
+  //   });
+  // }
 
   void getUserData() async {
     userData = await CommonFunctions().getLoggedInUserInfo();
@@ -65,44 +67,16 @@ class _HistoryPageState extends State<HistoryPage> {
     print(":::: $userData");
   }
 
-  // Future<void> _selectDate() async {
-  //   final DateTime? picked = await showDatePicker(
-  //     context: context,
-  //     initialDate: DateTime.now(),
-  //     firstDate: DateTime(2000),
-  //     lastDate: DateTime.now(),
-  //     builder: (context, child) {
-  //       return Theme(
-  //         data: Theme.of(context).copyWith(
-  //           colorScheme: ColorScheme.light(
-  //             primary: Colors.blue,
-  //             onPrimary: Colors.white,
-  //             onSurface: Colors.black,
-  //           ),
-  //           textButtonTheme: TextButtonThemeData(
-  //             style: TextButton.styleFrom(foregroundColor: Colors.blue),
-  //           ),
-  //         ),
-  //         child: child!,
-  //       );
-  //     },
-  //   );
-  //
-  //   if (picked != null) {
-  //     setState(() {
-  //       selectedDate = DateFormat('dd-MM-yyyy').format(picked);
-  //     });
-  //   }
-  // }
-
-
   Future<void> OpenSetDateDialog() async {
     final result = await showDialog<List<String>>(
       context: context,
       builder: (BuildContext context) {
         bool isSingleDateMode = true;
         return StatefulBuilder(
-          builder: (BuildContext context, void Function(void Function()) setDialogState) {
+          builder: (
+            BuildContext context,
+            void Function(void Function()) setDialogState,
+          ) {
             return SimpleAlertDialog(
               title: "Select the date",
               content: Column(
@@ -115,7 +89,10 @@ class _HistoryPageState extends State<HistoryPage> {
                           controller: singleDate,
                           label: "Pick a Date",
                           prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_today, color: AppColors.customBlue),
+                          trialingIcon: Icon(
+                            Icons.calendar_today,
+                            color: AppColors.customBlue,
+                          ),
                           customBool: true,
                         ),
                         SizedBox(height: 30),
@@ -127,7 +104,10 @@ class _HistoryPageState extends State<HistoryPage> {
                           controller: fromDate,
                           label: "From",
                           prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_today, color: AppColors.customBlue),
+                          trialingIcon: Icon(
+                            Icons.calendar_today,
+                            color: AppColors.customBlue,
+                          ),
                           customBool: true,
                         ),
                         SizedBox(height: 30),
@@ -135,7 +115,10 @@ class _HistoryPageState extends State<HistoryPage> {
                           controller: toDate,
                           label: "To",
                           prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_today, color: AppColors.customBlue),
+                          trialingIcon: Icon(
+                            Icons.calendar_today,
+                            color: AppColors.customBlue,
+                          ),
                           customBool: true,
                         ),
                         SizedBox(height: 30),
@@ -156,73 +139,64 @@ class _HistoryPageState extends State<HistoryPage> {
                 ],
               ),
               confirmBtnText: "Submit",
-                onConfirmButtonPressed: () {
-                  try {
-                    if (isSingleDateMode && singleDate.text.isNotEmpty) {
-                      final picked = DateFormat('dd-MM-yyyy').parseStrict(singleDate.text);
-                      final formatted = DateFormat('dd-MM-yyyy').format(picked);
-                      Navigator.of(context).pop([formatted]); // Return List<String> with one formatted date
-                    } else if (fromDate.text.isNotEmpty && toDate.text.isNotEmpty) {
-                      final start = DateFormat('dd-MM-yyyy').parseStrict(fromDate.text);
-                      final end = DateFormat('dd-MM-yyyy').parseStrict(toDate.text);
+              onConfirmButtonPressed: () {
+                try {
+                  if (isSingleDateMode && singleDate.text.isNotEmpty) {
+                    final picked = DateFormat(
+                      'dd-MM-yyyy',
+                    ).parseStrict(singleDate.text);
+                    final formatted = DateFormat('dd-MM-yyyy').format(picked);
+                    Navigator.of(context).pop([
+                      formatted,
+                    ]); // Return List<String> with one formatted date
+                  } else if (fromDate.text.isNotEmpty &&
+                      toDate.text.isNotEmpty) {
+                    final start = DateFormat(
+                      'dd-MM-yyyy',
+                    ).parseStrict(fromDate.text);
+                    final end = DateFormat(
+                      'dd-MM-yyyy',
+                    ).parseStrict(toDate.text);
 
-                      if (start.isAfter(end)) {
-                        print("⚠️ Invalid date range: Start date is after end date.");
-                        return;
-                      }
-
-                      final rangeDates = List.generate(
-                        end.difference(start).inDays + 1,
-                            (i) => DateFormat('dd-MM-yyyy').format(start.add(Duration(days: i))),
+                    if (start.isAfter(end)) {
+                      print(
+                        "⚠️ Invalid date range: Start date is after end date.",
                       );
-
-                      Navigator.of(context).pop(rangeDates); // Return full range as List<String>
-                    } else {
-                      print("⚠️ Please select valid date(s).");
+                      return;
                     }
-                  } catch (e) {
-                    print("❌ Error parsing date: $e");
+
+                    final rangeDates = List.generate(
+                      end.difference(start).inDays + 1,
+                      (i) => DateFormat(
+                        'dd-MM-yyyy',
+                      ).format(start.add(Duration(days: i))),
+                    );
+
+                    Navigator.of(
+                      context,
+                    ).pop(rangeDates); // Return full range as List<String>
+                  } else {
+                    print("⚠️ Please select valid date(s).");
                   }
+                } catch (e) {
+                  print("❌ Error parsing date: $e");
                 }
-
-
-              // onConfirmButtonPressed: () {
-              //   if (isSingleDateMode && singleDate.text.isNotEmpty) {
-              //     final picked = DateFormat('yyyy-MM-dd').parseStrict(singleDate.text);
-              //     final formatted = DateFormat('dd-MM-yyyy').format(picked);
-              //     Navigator.of(context).pop([formatted]); // return single date
-              //   } else if (fromDate.text.isNotEmpty && toDate.text.isNotEmpty) {
-              //     final start = DateFormat('yyyy-MM-dd').parseStrict(fromDate.text);
-              //     final end = DateFormat('yyyy-MM-dd').parseStrict(toDate.text);
-              //
-              //     if (start.isAfter(end)) {
-              //       print("⚠️ Invalid date range.");
-              //       return;
-              //     }
-              //
-              //     final rangeDates = List.generate(
-              //       end.difference(start).inDays + 1,
-              //           (i) => DateFormat('dd-MM-yyyy').format(start.add(Duration(days: i))),
-              //     );
-              //
-              //     Navigator.of(context).pop(rangeDates); // return range
-              //   } else {
-              //     print("⚠️ Please select valid date(s).");
-              //   }
-              // },
+              },
             );
           },
         );
       },
     );
-
-    // 👇🏻 Update main state after dialog closes
     if (result != null && result.isNotEmpty) {
       setState(() {
         customSelectedDates = result;
-        selectedDate = result.length == 1 ? result.first : "${result.first} to ${result.last}";
+        selectedDate =
+            result.length == 1
+                ? result.first
+                : "${result.first} to ${result.last}";
       });
     }
+
   }
 
   Future<double?> getRouteDistanceFromORS({
@@ -232,22 +206,20 @@ class _HistoryPageState extends State<HistoryPage> {
     required double endLng,
   }) async {
     final apiKey = API_KEY; // Replace with your actual ORS key
-    final url = 'https://api.openrouteservice.org/v2/directions/driving-car?geometry_format=geojson';
+    final url =
+        'https://api.openrouteservice.org/v2/directions/driving-car?geometry_format=geojson';
 
     final body = {
       "coordinates": [
         [startLng, startLat], // longitude, latitude
         [endLng, endLat],
-      ]
+      ],
     };
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: {'Authorization': apiKey, 'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
 
@@ -261,9 +233,7 @@ class _HistoryPageState extends State<HistoryPage> {
             data['routes'].isNotEmpty &&
             data['routes'][0]['summary'] != null &&
             data['routes'][0]['summary']['distance'] != null) {
-
           final distanceInMeters = data['routes'][0]['summary']['distance'];
-
 
           double distanceInKm = distanceInMeters / 1000;
 
@@ -272,22 +242,29 @@ class _HistoryPageState extends State<HistoryPage> {
             final prettyJson = const JsonEncoder.withIndent('  ').convert(data);
 
             for (int i = 0; i < prettyJson.length; i += chunkSize) {
-              final end = (i + chunkSize < prettyJson.length)
-                  ? i + chunkSize
-                  : prettyJson.length;
+              final end =
+                  (i + chunkSize < prettyJson.length)
+                      ? i + chunkSize
+                      : prettyJson.length;
               print(prettyJson.substring(i, end));
             }
           }
+
           // prettyPrintJson(data);
           print("Route Distance: $distanceInKm KM");
 
           final encodedPolyline = data['routes'][0]['geometry'];
 
           PolylinePoints polylinePoints = PolylinePoints();
-          List<PointLatLng> decodedPoints = polylinePoints.decodePolyline(encodedPolyline);
+          List<PointLatLng> decodedPoints = polylinePoints.decodePolyline(
+            encodedPolyline,
+          );
           // print("148: $decodedPoints");
 
-          final routePoints = decodedPoints.map((p) => LatLng(p.latitude, p.longitude)).toList();
+          final routePoints =
+              decodedPoints
+                  .map((p) => LatLng(p.latitude, p.longitude))
+                  .toList();
 
           print("151: $routePoints");
           return distanceInKm;
@@ -312,6 +289,28 @@ class _HistoryPageState extends State<HistoryPage> {
       return DateFormat('dd-MM-yyyy')
           .format(DateTime.now().subtract(Duration(days: i)));
     });
+
+    Map<String, dynamic> triplogs = Map<String, dynamic>.from(
+      userData?['triplogs'] ?? {},
+    );
+
+    // Populate heat map data
+    triplogs.forEach((dateStr, entries) {
+      if (entries != null && entries.isNotEmpty) {
+        final parts = dateStr.split('-');
+        final date = DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+        dataforHeatMap[date] = 1;
+      }
+    });
+
+    // Check if custom selected dates have no logs
+    bool noLogsForCustomDates = customSelectedDates.isNotEmpty &&
+        customSelectedDates.every((date) =>
+        (triplogs[date] == null || (triplogs[date] as List).isEmpty));
 
     return Scaffold(
       backgroundColor: CupertinoColors.white,
@@ -342,122 +341,123 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ),
       ),
-      body:
-          isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  color: CupertinoColors.activeBlue,
-                  backgroundColor: Colors.lightBlueAccent,
+      body: isLoading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: CupertinoColors.activeBlue,
+          backgroundColor: Colors.lightBlueAccent,
+        ),
+      )
+          : Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+                HeatMapCalendarWidget(
+                  dateTimeMap: dataforHeatMap,
+                  showCalender: true,
+                  onDateSelected: (DateTime date, int count) {
+                     String formattedDate =
+                    DateFormat('dd-MM-yyyy').format(date);
+                    setState(() {
+                      customSelectedDates = [formattedDate];
+                       // date1 =datesToShow as String;
+                    });
+                  },
                 ),
-              )
-              : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: SingleChildScrollView(
-                  child: ListView.builder(
-                    itemCount: datesToShow.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, dateIndex) {
-                      String date = datesToShow[dateIndex];
-                      List<dynamic> dayTrips = triplogs[date] ?? [];
+                const SizedBox(height: 10),
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SimpleContainer(
-                            title: date,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                dayTrips.isEmpty
-                                    ? Center(
-                                      child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0,
-                                            ),
-                                            child: Text(
-                                              "No logs to show!",
-                                              style: TextStyle(
-                                                color:
-                                                    CupertinoColors.systemGrey2,
-                                              ),
-                                            ),
-                                          )
-                                          .animate()
-                                          .fade(duration: 400.ms)
-                                          .scale(
-                                            begin: Offset(0.8, 0.8),
-                                            end: Offset(1, 1),
-                                            curve: Curves.easeOut,
-                                          )
-                                          .moveY(
-                                            begin: 30,
-                                            end: 0,
-                                            duration: 500.ms,
-                                            curve: Curves.easeOutBack,
-                                          ),
-                                    )
-                                    : ListView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: dayTrips.length,
-                                      itemBuilder: (context, tripIndex) {
-                                        final trip = Map<String, dynamic>.from(
-                                          dayTrips[tripIndex],
-                                        );
-                                        print("jnnjnnjnjn $trip");
+              const SizedBox(height: 10),
 
-                                        return ExpandableTripSummaryCard(
-                                              from: trip['from'] ?? "~",
-                                              to: trip['to'] ?? "~",
-                                              departureTime:
-                                                  trip['depart'] ?? "~",
-                                              arrivalTime:
-                                                  trip['arrive'] ?? "~",
-                                              distance:
-                                                  trip['distance']
-                                                      ?.toString() ??
-                                                  "~",
-                                              expense:
-                                                  trip['travel_cost']
-                                                      ?.toString() ??
-                                                  "~",
-                                              riding: trip['to'] == "~",
-                                              assetImage:
-                                                  trip['vehicle'] == "2-Wheeler"
-                                                      ? "Assets/bg_icon.png"
-                                                      : "Assets/bg_icon2.png",
-                                          startLat: trip["start"]['latitude'],
-                                          startLng: trip['start']['longitude'],
-                                          endLat: trip['end']['latitude'],
-                                          endLng: trip['end']['longitude'],
-                                          routeData: trip['route'],
-                                            )
-                                            .animate()
-                                            .fade(duration: 400.ms)
-                                            .scale(
-                                              begin: Offset(0.8, 0.8),
-                                              end: Offset(1, 1),
-                                              curve: Curves.easeOut,
-                                            )
-                                            .moveY(
-                                              begin: 30,
-                                              end: 0,
-                                              duration: 500.ms,
-                                              curve: Curves.easeOutBack,
-                                            );
-                                      },
-                                    ),
-                              ],
-                            ),
+              if (noLogsForCustomDates)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 30),
+
+                      child: Center(
+                        child: Text(
+                          "No logs to show!",
+                          style: TextStyle(
+                            color: CupertinoColors.systemGrey2,
+                            fontSize: 16,
                           ),
-                        ],
-                      );
-                    },
-                  ),
+                        ),
+                      ),
+                    )
+              else
+                ListView.builder(
+                  itemCount: datesToShow.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, dateIndex) {
+                    String date = datesToShow[dateIndex];
+                    List<dynamic> dayTrips = triplogs[date] ?? [];
+                    if (dayTrips.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SimpleContainer(
+                          title: date,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics:
+                                const NeverScrollableScrollPhysics(),
+                                itemCount: dayTrips.length,
+                                itemBuilder: (context, tripIndex) {
+                                  final trip = Map<String, dynamic>.from(
+                                      dayTrips[tripIndex]);
+
+                                  return ExpandableTripSummaryCard(
+                                    from: trip['from'] ?? "~",
+                                    to: trip['to'] ?? "~",
+                                    departureTime: trip['depart'] ?? "~",
+                                    arrivalTime: trip['arrive'] ?? "~",
+                                    distance:
+                                    trip['distance']?.toString() ?? "~",
+                                    expense: trip['travel_cost']
+                                        ?.toString() ??
+                                        "~",
+                                    riding: trip['to'] == "~",
+                                    assetImage: trip['vehicle'] ==
+                                        "2-Wheeler"
+                                        ? "Assets/bg_icon.png"
+                                        : "Assets/bg_icon2.png",
+                                    startLat: trip["start"]['latitude'],
+                                    startLng: trip['start']['longitude'],
+                                    endLat: trip['end']['latitude'],
+                                    endLng: trip['end']['longitude'],
+                                    routeData: trip['route'],
+                                  )
+                                      .animate()
+                                      .fade(duration: 400.ms)
+                                      .scale(
+                                    begin: Offset(0.8, 0.8),
+                                    end: Offset(1, 1),
+                                    curve: Curves.easeOut,
+                                  )
+                                      .moveY(
+                                    begin: 30,
+                                    end: 0,
+                                    duration: 500.ms,
+                                    curve: Curves.easeOutBack,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
-              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
