@@ -115,58 +115,58 @@ class _HistoryPageState extends State<HistoryPage> {
         return StatefulBuilder(
           builder: (BuildContext context, void Function(void Function()) setDialogState) {
             return SimpleAlertDialog(
-              title: "Date Selection",
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomSwitchContentButtons(
-                    firstWidget: Column(
-                      children: [
-                        DatePickerTextField(
-                          controller: singleDate,
-                          label: "Pick a Date",
-                          prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
-                          customBool: true,
-                        ),
-                        SizedBox(height: 30),
-                      ],
+                title: "Date Selection",
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CustomSwitchContentButtons(
+                      firstWidget: Column(
+                        children: [
+                          DatePickerTextField(
+                            controller: singleDate,
+                            label: "Pick a Date",
+                            prefillToday: false,
+                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                            customBool: true,
+                          ),
+                          SizedBox(height: 30),
+                        ],
+                      ),
+                      secondWidget: Column(
+                        children: [
+                          DatePickerTextField(
+                            controller: fromDate,
+                            label: "From",
+                            prefillToday: false,
+                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                            customBool: true,
+                          ),
+                          SizedBox(height: 30),
+                          DatePickerTextField(
+                            controller: toDate,
+                            label: "To",
+                            prefillToday: false,
+                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                            customBool: true,
+                          ),
+                          SizedBox(height: 30),
+                        ],
+                      ),
+                      onToggle: (bool useSingleDate) {
+                        setDialogState(() {
+                          isSingleDateMode = useSingleDate;
+                          if (isSingleDateMode) {
+                            fromDate.clear();
+                            toDate.clear();
+                          } else {
+                            singleDate.clear();
+                          }
+                        });
+                      },
                     ),
-                    secondWidget: Column(
-                      children: [
-                        DatePickerTextField(
-                          controller: fromDate,
-                          label: "From",
-                          prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
-                          customBool: true,
-                        ),
-                        SizedBox(height: 30),
-                        DatePickerTextField(
-                          controller: toDate,
-                          label: "To",
-                          prefillToday: false,
-                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
-                          customBool: true,
-                        ),
-                        SizedBox(height: 30),
-                      ],
-                    ),
-                    onToggle: (bool useSingleDate) {
-                      setDialogState(() {
-                        isSingleDateMode = useSingleDate;
-                        if (isSingleDateMode) {
-                          fromDate.clear();
-                          toDate.clear();
-                        } else {
-                          singleDate.clear();
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              confirmBtnText: "Select",
+                  ],
+                ),
+                confirmBtnText: "Select",
                 onConfirmButtonPressed: () {
                   try {
                     if (isSingleDateMode && singleDate.text.isNotEmpty) {
@@ -423,121 +423,121 @@ class _HistoryPageState extends State<HistoryPage> {
         ),
       ),
       body:
-          isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  color: CupertinoColors.activeBlue,
-                  backgroundColor: Colors.lightBlueAccent,
-                ),
-              )
-              : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: SingleChildScrollView(
-                  child: ListView.builder(
-                    itemCount: datesToShow.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, dateIndex) {
-                      String date = datesToShow[dateIndex];
-                      List<dynamic> dayTrips = triplogs[date] ?? [];
+      isLoading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: CupertinoColors.activeBlue,
+          backgroundColor: Colors.lightBlueAccent,
+        ),
+      )
+          : Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: SingleChildScrollView(
+          child: ListView.builder(
+            itemCount: datesToShow.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, dateIndex) {
+              String date = datesToShow[dateIndex];
+              List<dynamic> dayTrips = triplogs[date] ?? [];
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SimpleContainer(
-                            title: date,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                dayTrips.isEmpty
-                                    ? Center(
-                                      child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0,
-                                            ),
-                                            child: Text(
-                                              "No logs to show!",
-                                              style: TextStyle(
-                                                color:
-                                                    CupertinoColors.systemGrey2,
-                                              ),
-                                            ),
-                                          )
-                                          .animate()
-                                          .fade(duration: 400.ms)
-                                          .scale(
-                                            begin: Offset(0.8, 0.8),
-                                            end: Offset(1, 1),
-                                            curve: Curves.easeOut,
-                                          )
-                                          .moveY(
-                                            begin: 30,
-                                            end: 0,
-                                            duration: 500.ms,
-                                            curve: Curves.easeOutBack,
-                                          ),
-                                    )
-                                    : ListView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: dayTrips.length,
-                                      itemBuilder: (context, tripIndex) {
-                                        final trip = Map<String, dynamic>.from(
-                                          dayTrips[tripIndex],
-                                        );
-                                        print("trip info ${trip['distance']}");
-
-                                        return ExpandableTripSummaryCard(
-                                              from: trip['from'] ?? "~",
-                                              to: trip['to'] ?? "~",
-                                              departureTime:
-                                                  trip['depart'] ?? "~",
-                                              arrivalTime:
-                                                  trip['arrive'] ?? "~",
-                                              distance:
-                                                  trip['distance']
-                                                      ?.toString() ??
-                                                  "~",
-                                              expense:
-                                                  trip['travel_cost']
-                                                      ?.toString() ??
-                                                  "~",
-                                              riding: trip['to'] == "~",
-                                              assetImage:
-                                                  trip['vehicle'] == "2-Wheeler"
-                                                      ? "Assets/bg_icon.png"
-                                                      : "Assets/bg_icon2.png",
-                                            startLat: trip["start"]?['latitude'] ?? 0.0,
-                                            startLng: trip["start"]?['longitude'] ?? 0.0,
-                                            endLat: trip["end"]?['latitude'] ?? 0.0,
-                                            endLng: trip["end"]?['longitude'] ?? 0.0,
-                                            routeData: trip['route'] ?? []
-                                            )
-                                            .animate()
-                                            .fade(duration: 400.ms)
-                                            .scale(
-                                              begin: Offset(0.8, 0.8),
-                                              end: Offset(1, 1),
-                                              curve: Curves.easeOut,
-                                            )
-                                            .moveY(
-                                              begin: 30,
-                                              end: 0,
-                                              duration: 500.ms,
-                                              curve: Curves.easeOutBack,
-                                            );
-                                      },
-                                    ),
-                              ],
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SimpleContainer(
+                    title: date,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        dayTrips.isEmpty
+                            ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8.0,
                             ),
+                            child: Text(
+                              "No logs to show!",
+                              style: TextStyle(
+                                color:
+                                CupertinoColors.systemGrey2,
+                              ),
+                            ),
+                          )
+                              .animate()
+                              .fade(duration: 400.ms)
+                              .scale(
+                            begin: Offset(0.8, 0.8),
+                            end: Offset(1, 1),
+                            curve: Curves.easeOut,
+                          )
+                              .moveY(
+                            begin: 30,
+                            end: 0,
+                            duration: 500.ms,
+                            curve: Curves.easeOutBack,
                           ),
-                        ],
-                      );
-                    },
+                        )
+                            : ListView.builder(
+                          shrinkWrap: true,
+                          physics:
+                          const NeverScrollableScrollPhysics(),
+                          itemCount: dayTrips.length,
+                          itemBuilder: (context, tripIndex) {
+                            final trip = Map<String, dynamic>.from(
+                              dayTrips[tripIndex],
+                            );
+                            print("trip info ${trip['distance']}");
+
+                            return ExpandableTripSummaryCard(
+                                from: trip['from'] ?? "~",
+                                to: trip['to'] ?? "~",
+                                departureTime:
+                                trip['depart'] ?? "~",
+                                arrivalTime:
+                                trip['arrive'] ?? "~",
+                                distance:
+                                trip['distance']
+                                    ?.toString() ??
+                                    "~",
+                                expense:
+                                trip['travel_cost']
+                                    ?.toString() ??
+                                    "~",
+                                riding: trip['to'] == "~",
+                                assetImage:
+                                trip['vehicle'] == "2-Wheeler"
+                                    ? "Assets/bg_icon.png"
+                                    : "Assets/bg_icon2.png",
+                                startLat: trip["start"]?['latitude'] ?? 0.0,
+                                startLng: trip["start"]?['longitude'] ?? 0.0,
+                                endLat: trip["end"]?['latitude'] ?? 0.0,
+                                endLng: trip["end"]?['longitude'] ?? 0.0,
+                                routeData: trip['route'] ?? []
+                            )
+                                .animate()
+                                .fade(duration: 400.ms)
+                                .scale(
+                              begin: Offset(0.8, 0.8),
+                              end: Offset(1, 1),
+                              curve: Curves.easeOut,
+                            )
+                                .moveY(
+                              begin: 30,
+                              end: 0,
+                              duration: 500.ms,
+                              curve: Curves.easeOutBack,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }
