@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:trip_tracker_app/Pages/Splash.dart';
 import 'package:trip_tracker_app/Pages/QuickLocations.dart';
 import 'package:trip_tracker_app/Utils/StorageService.dart';
 
@@ -22,11 +23,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Trip Tracker',
       theme: ThemeData(primarySwatch: Colors.blue),
-       initialRoute: '/login',
+       initialRoute: '/splash',
       routes: {
         '/home': (context) => const BottomNavBar(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(),
+        '/splash':(context) => const SplashScreen()
         '/quick_locations': (context) => QuickLocations()
       },
     );

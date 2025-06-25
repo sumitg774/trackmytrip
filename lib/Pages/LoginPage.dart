@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../Components/TextFields.dart';
+import '../PageComponents/BottomNavBar.dart';
 import '../Utils/AppColorTheme.dart';
 import '../Utils/CommonFunctions.dart';
 import '../Utils/StorageKeys.dart';
@@ -23,6 +24,11 @@ class _LoginPageState extends State<LoginPage> {
   TextEditingController resetPasswordEmail = TextEditingController();
   final _formkey = GlobalKey<FormState>();
   String? errorMessage;
+
+  void initState() {
+    super.initState();
+    // navigateAfterDelay();
+  }
 
 
   String? EmailValidation(String? email) {
