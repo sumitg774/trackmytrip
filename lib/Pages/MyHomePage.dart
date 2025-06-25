@@ -292,6 +292,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void SignOut() {
     FirebaseAuth.instance.signOut();
+    StorageService
+        .instance
+        .clearAll();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
