@@ -404,6 +404,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   DateFormat('dd-MM-yyyy').format(date);
                   setState(() {
                     customSelectedDates = [formattedDate];
+                    setShowSummary(true);
                     // date1 =datesToShow as String;
                   });
                 },
@@ -497,6 +498,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     );
                   },
                 ),
+              SizedBox(height: 50,)
             ],
           ),
         ),
