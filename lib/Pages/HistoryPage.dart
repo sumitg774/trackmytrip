@@ -46,7 +46,10 @@ class _HistoryPageState extends State<HistoryPage> {
     super.initState();
     getUserData();
     setShowSummary(false);
+    customSelectedDates = [];
   }
+
+
 
   void setShowSummary(bool value){
     setState(() {
@@ -62,6 +65,36 @@ class _HistoryPageState extends State<HistoryPage> {
       ).format(DateTime.now().subtract(Duration(days: i)));
     });
   }
+  // void getTwoWheelerDates(){
+  //   List<String> twoWheeler = [];
+  //
+  //   triplogs.forEach((date, logs) {
+  //     if (logs is List) {
+  //       bool hasTwoWheeler = logs.any(
+  //             (log) =>
+  //         log is Map<String, dynamic> && log['vehicle'] == '2-Wheeler',
+  //       );
+  //       if (hasTwoWheeler) {
+  //         twoWheeler.add(date);
+  //       }
+  //     }
+  //   });
+  // }
+  //
+  // void getFourWheelerDates(){
+  //   List<String> fourWheeler =[];
+  //   triplogs.forEach((date, logs) {
+  //     if (logs is List) {
+  //       bool hasFourWheeler = logs.any(
+  //             (log) =>
+  //         log is Map<String, dynamic> && log['vehicle'] == '4-Wheeler',
+  //       );
+  //       if (hasFourWheeler) {
+  //         fourWheeler.add(date);
+  //       }
+  //     }
+  //   });
+  // }
 
   void getUserData() async {
     userData = await CommonFunctions().getLoggedInUserInfo();
@@ -74,6 +107,7 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     print(":::: $userData");
+
   }
 
   Future<void> OpenSetDateDialog() async {
@@ -266,9 +300,13 @@ class _HistoryPageState extends State<HistoryPage> {
           .format(DateTime.now().subtract(Duration(days: i)));
     });
 
+    print("vivek$datesToShow");
+
     Map<String, dynamic> triplogs = Map<String, dynamic>.from(
       userData?['triplogs'] ?? {},
     );
+    bool noLogsAvailable = datesToShow.every((date) =>
+    triplogs[date] == null || (triplogs[date] as List).isEmpty);
 
     // Populate heat map data
     triplogs.forEach((dateStr, entries) {
@@ -284,9 +322,9 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     // Check if custom selected dates have no logs
-    bool noLogsForCustomDates = customSelectedDates.isNotEmpty &&
-        customSelectedDates.every((date) =>
-        (triplogs[date] == null || (triplogs[date] as List).isEmpty));
+    // bool noLogsForCustomDates = customSelectedDates.isNotEmpty &&
+    //     customSelectedDates.every((date) =>
+    //     (triplogs[date] == null || (triplogs[date] as List).isEmpty));
 
     print("Dates to show: $datesToShow");
 
@@ -339,31 +377,6 @@ class _HistoryPageState extends State<HistoryPage> {
         backgroundColor: CupertinoColors.white,
         actionsPadding: EdgeInsets.only(right: 22),
         actions: [
-          //TODO Needs Work Yet
-          PopupMenuButton<String>(
-            surfaceTintColor: CupertinoColors.white,
-            icon: Icon(Icons.filter_alt_rounded, color: CupertinoColors.activeBlue),
-            onSelected: (value) {
-              setState(() {
-                selectedVehicleFilter = value;
-              });
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem(value: "2-Wheeler", child: Row(
-                children: [
-                  Checkbox(value: true, onChanged: (bool? value) {  },),
-                  Text("2-Wheeler"),
-                ],
-              )),
-              PopupMenuItem(value: "4-Wheeler", child: Row(
-                children: [
-                  Checkbox(value: true, onChanged: (bool? value) { value = false; },),
-                  Text("4-Wheeler"),
-                ],
-              )),
-            ],
-          ),
-
           IconButton(
             onPressed: OpenSetDateDialog,
             icon: const Icon(
@@ -409,11 +422,86 @@ class _HistoryPageState extends State<HistoryPage> {
                   });
                 },
               ),
-              const SizedBox(height: 10),
+
+              const SizedBox(height: 30),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Text(
+              //       "Trip details",
+              //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              //     ),
+              //     Row(
+              //       children: [
+              //         ElevatedButton(
+              //           onPressed: () {},
+              //           child: Icon(Icons.two_wheeler)
+              //         ),
+              //         SizedBox(width: 8),
+              //         ElevatedButton(
+              //           onPressed: () {},
+              //           child: Icon(CupertinoIcons.car_detailed),
+              //         ),
+              //         SizedBox(width: 8),
+              //         ElevatedButton(
+              //           onPressed: () {},
+              //           child: Text("All"),
+              //         ),
+              //       ],
+              //     ),
+              //   ],
+              // ),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Trip Details"),
+                  Row(
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedVehicleFilter == '2-Wheeler' ? CupertinoColors.activeBlue : Colors.grey[300],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            selectedVehicleFilter = '2-Wheeler';
+                          });
+                        },
+                        child: Icon(Icons.two_wheeler, color: Colors.black87),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedVehicleFilter == '4-Wheeler' ? CupertinoColors.activeBlue : Colors.grey[300],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            selectedVehicleFilter = '4-Wheeler';
+                          });
+                        },
+                        child: Icon(CupertinoIcons.car_detailed, color: Colors.black87),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedVehicleFilter == null ? CupertinoColors.activeBlue : Colors.grey[300],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            selectedVehicleFilter = null;
+                          });
+                        },
+                        child: Text("All", style: TextStyle(color: Colors.black87)),
+                      ),
+                    ],
+                  ),
+
+                ],
+              ),
 
               const SizedBox(height: 10),
 
-              if (noLogsForCustomDates)
+              if (noLogsAvailable)
                 Padding(
                   padding: const EdgeInsets.only(top: 30),
 
@@ -434,7 +522,12 @@ class _HistoryPageState extends State<HistoryPage> {
                   physics: const NeverScrollableScrollPhysics(),
                   itemBuilder: (context, dateIndex) {
                     String date = datesToShow[dateIndex];
-                    List<dynamic> dayTrips = triplogs[date] ?? [];
+                    // List<dynamic> dayTrips = triplogs[date] ?? [];
+                    List<dynamic> originalTrips = triplogs[date] ?? [];
+                    List<dynamic> dayTrips = selectedVehicleFilter == null
+                        ? originalTrips
+                        : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
+
                     if (dayTrips.isEmpty) {
                       return const SizedBox.shrink();
                     }
