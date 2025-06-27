@@ -28,6 +28,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+
   TextEditingController singleDate = TextEditingController();
   TextEditingController fromDate = TextEditingController();
   TextEditingController toDate = TextEditingController();
