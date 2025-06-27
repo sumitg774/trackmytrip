@@ -10,6 +10,7 @@ class SimpleAlertDialog extends StatefulWidget {
   final VoidCallback onConfirmButtonPressed;
   String confirmBtnText;
   bool confirmBtnState;
+  bool wantOneButton;
 
   SimpleAlertDialog({
     super.key,
@@ -17,7 +18,8 @@ class SimpleAlertDialog extends StatefulWidget {
     required this.content,
     required this.onConfirmButtonPressed,
     required this.confirmBtnText,
-    this.confirmBtnState = false
+    this.confirmBtnState = false,
+    this.wantOneButton = false,
   });
 
   @override
@@ -51,6 +53,7 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
       actions: [
         Row(
           children: [
+            !widget.wantOneButton ?
             Expanded(
               flex: 1,
               child: SimpleButton(
@@ -58,8 +61,8 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
                 buttonText: "Cancel",
                 isCancelButton: true,
               ),
-            ),
-            SizedBox(width: 12),
+            ): SizedBox(),
+            SizedBox(width: widget.wantOneButton ? 0:12),
             Expanded(
               flex: 1,
               child: SimpleButton(
@@ -74,3 +77,6 @@ class _SimpleAlertDialogState extends State<SimpleAlertDialog> {
     );
   }
 }
+
+
+

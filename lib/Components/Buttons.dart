@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lottie/lottie.dart';
 
-import '../Utils/AppColorTheme.dart';
 
 class SquareIconButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -107,6 +107,13 @@ class TransparentFab extends StatelessWidget {
                       color: Colors.white.withOpacity(0.5),
                       width: 0.5,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 0), // changes position of shadow
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -356,7 +363,70 @@ class _CustomSwitchContentButtonsState
   }
 }
 
+class TripStartedContainer extends StatelessWidget {
+  const TripStartedContainer({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Positioned(
+                right: -15,         // Aligns to the right edge
+                top: -70,         // Adjust vertically if needed
+                width: 200,       // Control size
+                height: 200,
+                child: Lottie.network("https://lottie.host/d3d174ed-ecef-4220-957b-55ad6d516e4d/q9R86zOc2v.json",
+                  fit: BoxFit.fill,
+                  repeat: true,
+                ),
+              ),
+
+              AnimatedContainer(
+                duration: Duration(milliseconds: 500),
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color:  CupertinoColors.activeGreen.withOpacity(0.6),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.5),
+                    width: 0.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(width: 12),
+                    Icon(Icons.directions_bike_rounded, color: Colors.white, size: 32),
+                    SizedBox(width: 15),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Trip Started!",
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          "Tracking in progress...",
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )
+            .animate()
+            .slideY(begin: 7.0, end: 0.0, duration: 750.ms, curve: Curves.easeOut)
+            .fadeIn(duration: 1000.ms, curve: Curves.easeOut),
+      ],
+    );
+  }
+}
 
 
 
