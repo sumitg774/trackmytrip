@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
@@ -15,6 +17,8 @@ import '../Components/TextFields.dart';
 import '../Utils/AppColorTheme.dart';
 import '../Utils/CommonFunctions.dart';
 import 'dart:math';
+
+import '../Utils/PdfGenerator.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -39,7 +43,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Map<DateTime, int?> dataforHeatMap = {};
   String? selectedDate1;
-  List<String> customSelectedDates=[];
+  List<String> customSelectedDates = [];
 
   @override
   void initState() {
@@ -49,9 +53,7 @@ class _HistoryPageState extends State<HistoryPage> {
     customSelectedDates = [];
   }
 
-
-
-  void setShowSummary(bool value){
+  void setShowSummary(bool value) {
     setState(() {
       showSummary = value;
     });
@@ -65,36 +67,6 @@ class _HistoryPageState extends State<HistoryPage> {
       ).format(DateTime.now().subtract(Duration(days: i)));
     });
   }
-  // void getTwoWheelerDates(){
-  //   List<String> twoWheeler = [];
-  //
-  //   triplogs.forEach((date, logs) {
-  //     if (logs is List) {
-  //       bool hasTwoWheeler = logs.any(
-  //             (log) =>
-  //         log is Map<String, dynamic> && log['vehicle'] == '2-Wheeler',
-  //       );
-  //       if (hasTwoWheeler) {
-  //         twoWheeler.add(date);
-  //       }
-  //     }
-  //   });
-  // }
-  //
-  // void getFourWheelerDates(){
-  //   List<String> fourWheeler =[];
-  //   triplogs.forEach((date, logs) {
-  //     if (logs is List) {
-  //       bool hasFourWheeler = logs.any(
-  //             (log) =>
-  //         log is Map<String, dynamic> && log['vehicle'] == '4-Wheeler',
-  //       );
-  //       if (hasFourWheeler) {
-  //         fourWheeler.add(date);
-  //       }
-  //     }
-  //   });
-  // }
 
   void getUserData() async {
     userData = await CommonFunctions().getLoggedInUserInfo();
@@ -107,7 +79,6 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     print(":::: $userData");
-
   }
 
   Future<void> OpenSetDateDialog() async {
@@ -300,8 +271,6 @@ class _HistoryPageState extends State<HistoryPage> {
           .format(DateTime.now().subtract(Duration(days: i)));
     });
 
-    print("vivek$datesToShow");
-
     Map<String, dynamic> triplogs = Map<String, dynamic>.from(
       userData?['triplogs'] ?? {},
     );
@@ -359,18 +328,101 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     calculateTodaysTotalDistanceAndExpenditure();
-    bool twoWheeler = false;
-    bool fourWheeler = false;
+
+    List<Map<String, dynamic>> getFlatTripList() {
+      List<Map<String, dynamic>> allTrips = [];
+
+      for (String date in datesToShow) {
+        List<dynamic> dayTrips = triplogs[date] ?? [];
+
+        for (var tripRaw in dayTrips) {
+          final trip = Map<String, dynamic>.from(tripRaw);
+
+          allTrips.add({
+            'Date': date,
+            'From': trip['from'] ?? '~',
+            'To': trip['to'] ?? '~',
+            'Departure': trip['depart'] ?? '~',
+            'Arrival': trip['arrive'] ?? '~',
+            'Distance (km)': double.parse(trip['distance']!.toString()) ?? '~',
+            'Expenditure (₹)':
+                double.parse(trip['travel_cost']!.toString()) ?? '~',
+            'Vehicle': trip['vehicle'] ?? '~',
+          });
+        }
+      }
+
+      return allTrips;
+    }
 
     return Scaffold(
       backgroundColor: CupertinoColors.white,
-      floatingActionButton: showSummary ? TransparentFab(
-        expenditure: total_expenditure.toStringAsFixed(2) ?? "0.0",
-        kms: total_distance.toStringAsFixed(2) ?? "0.0",
-        text1: "Total Expenditure",
-        text2: "Total Distance",
-      ): SizedBox(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.activeBlue.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.5),
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 0), // changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(3.0),
+                    child: IconButton(
+                      onPressed: () async {
+                        final flatData = getFlatTripList();
+                        await generateTripPdfReport(
+                          flatData,
+                          context,
+                          total_distance.toStringAsFixed(2),
+                          total_expenditure.toStringAsFixed(2),
+                          userData?['name'],
+                          userData?['emp_id']
+                        );
+                      },
+                      icon: Icon(
+                        Icons.file_download_rounded,
+                        size: 25,
+                        color: CupertinoColors.systemBlue,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          showSummary
+              ? TransparentFab(
+                expenditure: total_expenditure.toStringAsFixed(2) ?? "0.0",
+                kms: total_distance.toStringAsFixed(2) ?? "0.0",
+                text1: "Total Expenditure",
+                text2: "Total Distance",
+              )
+              : SizedBox(),
+        ],
+      ),
+      floatingActionButtonLocation:
+          showSummary
+              ? FloatingActionButtonLocation.centerDocked
+              : FloatingActionButtonLocation.endDocked,
       appBar: AppBar(
         toolbarHeight: 80,
         scrolledUnderElevation: 0,
@@ -451,7 +503,7 @@ class _HistoryPageState extends State<HistoryPage> {
               //     ),
               //   ],
               // ),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -499,7 +551,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 ],
               ),
 
-              const SizedBox(height: 10),
+                      const SizedBox(height: 10),
 
               if (noLogsAvailable)
                 Padding(
