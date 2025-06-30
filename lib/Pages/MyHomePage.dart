@@ -77,12 +77,12 @@ class _MyHomePageState extends State<MyHomePage> {
     double total_distance2 = 0.0;
 
     TodaysTripLogs.forEach((log) {
-      final distance = double.tryParse(log['distance']) ?? 0.0;
+      final distanceStr = log['distance']?.toString();
+      final distance = double.tryParse(distanceStr ?? '') ?? 0.0;
       print("_________$distance");
-      if (distance != null) {
-        total_distance2 += distance;
-      }
+      total_distance2 += distance;
     });
+
 
     setState(() {
       total_distance = total_distance2;
@@ -238,14 +238,29 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
               onConfirmButtonPressed: () async {
-                await startTrip();
-                setEnabledStatus(true);
-                print("SELECTED LOC :: $selectedLocation");
-                getUserData();
-                Navigator.pop(context);
+
+                setState(() {
+                  isLoading = true;
+                });
+
+                try{
+                  await startTrip();
+                  setEnabledStatus(true);
+                  print("SELECTED LOC :: $selectedLocation");
+                  getUserData();
+                  Navigator.pop(context);
+                } catch (e){
+                  print("$e Something went wrong!");
+                } finally {
+                  setState((){
+                    isLoading = false;
+                    print("this is getting called");
+                  });
+                }
+
               },
               confirmBtnText: "Start",
-              confirmBtnState: !checked,
+              confirmBtnState: !checked || isLoading,
             );
           },
         );
@@ -254,33 +269,84 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void showEndTripAlertDialog() {
+    bool endTripLoading = false;
+    bool contentFilled = false;
     showDialog(
       context: context,
       builder: (context) {
-        return SimpleAlertDialog(
-          title: "End Trip",
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                hintText: "Enter Destination",
-                controller: DestinationLocation,
+        return StatefulBuilder(
+            builder: (context, setDialogState) {
+          DestinationLocation.addListener(() {
+            final filled = DestinationLocation.text.isNotEmpty &&
+                DescriptionText.text.isNotEmpty;
+            if (filled != contentFilled) {
+              setDialogState(() {
+                contentFilled = filled;
+              });
+            }
+          });
+
+          DescriptionText.addListener(() {
+            final filled = DestinationLocation.text.isNotEmpty &&
+                DescriptionText.text.isNotEmpty;
+            if (filled != contentFilled) {
+              setDialogState(() {
+                contentFilled = filled;
+              });
+            }
+          });
+
+          return SimpleAlertDialog(
+            title: "End Trip",
+            content: endTripLoading
+                ? SizedBox(
+              height: 50,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: CupertinoColors.activeBlue,
+                  backgroundColor: Colors.lightBlueAccent,
+                ),
               ),
-              const SizedBox(height: 18),
-              DescriptionTextField(
-                hintText: "Description",
-                controller: DescriptionText,
-              ),
-            ],
-          ),
-          onConfirmButtonPressed: () async {
-            await endTrip();
-            setEnabledStatus(false);
-            getUserData();
-            Navigator.pop(context);
-          },
-          confirmBtnText: "Save",
-        );
+            )
+                : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomTextField(
+                  hintText: "Enter Destination",
+                  controller: DestinationLocation,
+                ),
+                const SizedBox(height: 18),
+                DescriptionTextField(
+                  hintText: "Description",
+                  controller: DescriptionText,
+                ),
+              ],
+            ),
+            onConfirmButtonPressed: () async {
+
+              setDialogState((){
+                endTripLoading = true;
+              });
+
+              try{
+                await endTrip();
+                setEnabledStatus(false);
+                getUserData();
+                Navigator.pop(context);
+              } catch(e) {
+                print("$e Something went wrong!");
+              } finally {
+                setDialogState(() {
+                  endTripLoading = false;
+                });
+              }
+            },
+            confirmBtnText: "Save",
+            confirmBtnState: endTripLoading || !contentFilled,
+          );
+
+        });
+
       },
     );
   }
