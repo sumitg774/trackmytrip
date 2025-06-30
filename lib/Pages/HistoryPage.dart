@@ -88,116 +88,89 @@ class _HistoryPageState extends State<HistoryPage> {
       builder: (BuildContext context) {
         bool isSingleDateMode = true;
         return StatefulBuilder(
-          builder: (
-            BuildContext context,
-            void Function(void Function()) setDialogState,
-          ) {
+          builder: (BuildContext context, void Function(void Function()) setDialogState) {
             return SimpleAlertDialog(
-              title: "Date Selection",
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomSwitchContentButtons(
-                    firstWidget: Column(
-                      children: [
-                        DatePickerTextField(
-                          controller: singleDate,
-                          label: "Pick a Date",
-                          prefillToday: false,
-                          trialingIcon: Icon(
-                            Icons.calendar_month_rounded,
-                            color: CupertinoColors.activeBlue,
+                title: "Date Selection",
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CustomSwitchContentButtons(
+                      firstWidget: Column(
+                        children: [
+                          DatePickerTextField(
+                            controller: singleDate,
+                            label: "Pick a Date",
+                            prefillToday: false,
+                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                            customBool: true,
                           ),
-                          customBool: true,
-                        ),
-                        SizedBox(height: 30),
-                      ],
+                          SizedBox(height: 30),
+                        ],
+                      ),
+                      secondWidget: Column(
+                        children: [
+                          DatePickerTextField(
+                            controller: fromDate,
+                            label: "From",
+                            prefillToday: false,
+                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                            customBool: true,
+                          ),
+                          SizedBox(height: 30),
+                          DatePickerTextField(
+                            controller: toDate,
+                            label: "To",
+                            prefillToday: false,
+                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                            customBool: true,
+                          ),
+                          SizedBox(height: 30),
+                        ],
+                      ),
+                      onToggle: (bool useSingleDate) {
+                        setDialogState(() {
+                          isSingleDateMode = useSingleDate;
+                          if (isSingleDateMode) {
+                            fromDate.clear();
+                            toDate.clear();
+                          } else {
+                            singleDate.clear();
+                          }
+                        });
+                      },
                     ),
-                    secondWidget: Column(
-                      children: [
-                        DatePickerTextField(
-                          controller: fromDate,
-                          label: "From",
-                          prefillToday: false,
-                          trialingIcon: Icon(
-                            Icons.calendar_month_rounded,
-                            color: CupertinoColors.activeBlue,
-                          ),
-                          customBool: true,
-                        ),
-                        SizedBox(height: 30),
-                        DatePickerTextField(
-                          controller: toDate,
-                          label: "To",
-                          prefillToday: false,
-                          trialingIcon: Icon(
-                            Icons.calendar_month_rounded,
-                            color: CupertinoColors.activeBlue,
-                          ),
-                          customBool: true,
-                        ),
-                        SizedBox(height: 30),
-                      ],
-                    ),
-                    onToggle: (bool useSingleDate) {
-                      setDialogState(() {
-                        isSingleDateMode = useSingleDate;
-                        if (isSingleDateMode) {
-                          fromDate.clear();
-                          toDate.clear();
-                        } else {
-                          singleDate.clear();
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              confirmBtnText: "Submit",
-              onConfirmButtonPressed: () {
-                try {
-                  if (isSingleDateMode && singleDate.text.isNotEmpty) {
-                    final picked = DateFormat(
-                      'dd-MM-yyyy',
-                    ).parseStrict(singleDate.text);
-                    final formatted = DateFormat('dd-MM-yyyy').format(picked);
-                    Navigator.of(context).pop([
-                      formatted,
-                    ]); // Return List<String> with one formatted date
-                  } else if (fromDate.text.isNotEmpty &&
-                      toDate.text.isNotEmpty) {
-                    final start = DateFormat(
-                      'dd-MM-yyyy',
-                    ).parseStrict(fromDate.text);
-                    final end = DateFormat(
-                      'dd-MM-yyyy',
-                    ).parseStrict(toDate.text);
+                  ],
+                ),
+                confirmBtnText: "Submit",
+                onConfirmButtonPressed: () {
+                  try {
+                    if (isSingleDateMode && singleDate.text.isNotEmpty) {
+                      final picked = DateFormat('dd-MM-yyyy').parseStrict(singleDate.text);
+                      final formatted = DateFormat('dd-MM-yyyy').format(picked);
+                      Navigator.of(context).pop([formatted]); // Return List<String> with one formatted date
+                    } else if (fromDate.text.isNotEmpty && toDate.text.isNotEmpty) {
+                      final start = DateFormat('dd-MM-yyyy').parseStrict(fromDate.text);
+                      final end = DateFormat('dd-MM-yyyy').parseStrict(toDate.text);
 
-                    if (start.isAfter(end)) {
-                      print(
-                        "⚠️ Invalid date range: Start date is after end date.",
+                      if (start.isAfter(end)) {
+                        print("⚠️ Invalid date range: Start date is after end date.");
+                        return;
+                      }
+
+                      final rangeDates = List.generate(
+                        end.difference(start).inDays + 1,
+                            (i) => DateFormat('dd-MM-yyyy').format(start.add(Duration(days: i))),
                       );
-                      return;
+
+                      Navigator.of(context).pop(rangeDates); // Return full range as List<String>
+                    } else {
+                      print("⚠️ Please select valid date(s).");
                     }
-
-                    final rangeDates = List.generate(
-                      end.difference(start).inDays + 1,
-                      (i) => DateFormat(
-                        'dd-MM-yyyy',
-                      ).format(start.add(Duration(days: i))),
-                    );
-
-                    Navigator.of(
-                      context,
-                    ).pop(rangeDates); // Return full range as List<String>
-                  } else {
-                    print("⚠️ Please select valid date(s).");
+                  } catch (e) {
+                    print("❌ Error parsing date: $e");
                   }
-                } catch (e) {
-                  print("❌ Error parsing date: $e");
+                  setShowSummary(true);
                 }
-                setShowSummary(true);
-              },
             );
           },
         );
@@ -206,10 +179,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (result != null && result.isNotEmpty) {
       setState(() {
         customSelectedDates = result;
-        selectedDate =
-            result.length == 1
-                ? result.first
-                : "${result.first} to ${result.last}";
+        selectedDate = result.length == 1 ? result.first : "${result.first} to ${result.last}";
       });
     }
   }
@@ -221,20 +191,22 @@ class _HistoryPageState extends State<HistoryPage> {
     required double endLng,
   }) async {
     final apiKey = API_KEY; // Replace with your actual ORS key
-    final url =
-        'https://api.openrouteservice.org/v2/directions/driving-car?geometry_format=geojson';
+    final url = 'https://api.openrouteservice.org/v2/directions/driving-car?geometry_format=geojson';
 
     final body = {
       "coordinates": [
         [startLng, startLat], // longitude, latitude
         [endLng, endLat],
-      ],
+      ]
     };
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Authorization': apiKey, 'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode(body),
       );
 
@@ -257,29 +229,22 @@ class _HistoryPageState extends State<HistoryPage> {
             final prettyJson = const JsonEncoder.withIndent('  ').convert(data);
 
             for (int i = 0; i < prettyJson.length; i += chunkSize) {
-              final end =
-                  (i + chunkSize < prettyJson.length)
-                      ? i + chunkSize
-                      : prettyJson.length;
+              final end = (i + chunkSize < prettyJson.length)
+                  ? i + chunkSize
+                  : prettyJson.length;
               print(prettyJson.substring(i, end));
             }
           }
-
           // prettyPrintJson(data);
           print("Route Distance: $distanceInKm KM");
 
           final encodedPolyline = data['routes'][0]['geometry'];
 
           PolylinePoints polylinePoints = PolylinePoints();
-          List<PointLatLng> decodedPoints = polylinePoints.decodePolyline(
-            encodedPolyline,
-          );
+          List<PointLatLng> decodedPoints = polylinePoints.decodePolyline(encodedPolyline);
           // print("148: $decodedPoints");
 
-          final routePoints =
-              decodedPoints
-                  .map((p) => LatLng(p.latitude, p.longitude))
-                  .toList();
+          final routePoints = decodedPoints.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
           print("151: $routePoints");
           return distanceInKm;
@@ -298,21 +263,18 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> datesToShow =
-        customSelectedDates.isNotEmpty
-            ? customSelectedDates
-            : List.generate(5, (i) {
-              return DateFormat(
-                'dd-MM-yyyy',
-              ).format(DateTime.now().subtract(Duration(days: i)));
-            });
+    List<String> datesToShow = customSelectedDates.isNotEmpty
+        ? customSelectedDates
+        : List.generate(5, (i) {
+      return DateFormat('dd-MM-yyyy')
+          .format(DateTime.now().subtract(Duration(days: i)));
+    });
 
     Map<String, dynamic> triplogs = Map<String, dynamic>.from(
       userData?['triplogs'] ?? {},
     );
-    bool noLogsAvailable = datesToShow.every(
-      (date) => triplogs[date] == null || (triplogs[date] as List).isEmpty,
-    );
+    bool noLogsAvailable = datesToShow.every((date) =>
+    triplogs[date] == null || (triplogs[date] as List).isEmpty);
 
     // Populate heat map data
     triplogs.forEach((dateStr, entries) {
@@ -327,40 +289,35 @@ class _HistoryPageState extends State<HistoryPage> {
       }
     });
 
-    // Check if custom selected dates have no logs
-    // bool noLogsForCustomDates = customSelectedDates.isNotEmpty &&
-    //     customSelectedDates.every((date) =>
-    //     (triplogs[date] == null || (triplogs[date] as List).isEmpty));
-
     print("Dates to show: $datesToShow");
 
     void calculateTodaysTotalDistanceAndExpenditure() {
-      double total_expenditure2 = 0.0;
-      double total_distance2 = 0.0;
+      double totalExpenditure = 0.0;
+      double totalDistance = 0.0;
 
       for (String date in datesToShow) {
-        final logs = triplogs[date];
+        List<dynamic> originalTrips = triplogs[date] ?? [];
+        List<dynamic> dayTrips = selectedVehicleFilter == null
+            ? originalTrips
+            : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
 
-        if (logs != null && logs is List) {
-          for (var log in logs) {
-            final expenditure = double.tryParse(log['travel_cost'].toString());
-            final distance = double.tryParse(log['distance'].toString());
-            if (expenditure != null && distance != null) {
-              total_expenditure2 += expenditure;
-              total_distance2 += distance;
-            }
+        for (var trip in dayTrips) {
+          final expenditure = double.tryParse(trip['travel_cost'].toString());
+          final distance = double.tryParse(trip['distance'].toString());
+
+          if (expenditure != null && distance != null) {
+            totalExpenditure += expenditure;
+            totalDistance += distance;
           }
-        } else {
-          print("No trip logs found for $date");
-        }
+
       }
 
       setState(() {
-        total_expenditure = total_expenditure2;
-        total_distance = total_distance2;
+        total_expenditure = totalExpenditure;
+        total_distance = totalDistance;
       });
 
-      print("TOTAL:EXP =  $total_expenditure");
+      print("TOTAL:EXP = $total_expenditure");
       print("TOTAL:DIST = $total_distance");
     }
 
@@ -370,7 +327,12 @@ class _HistoryPageState extends State<HistoryPage> {
       List<Map<String, dynamic>> allTrips = [];
 
       for (String date in datesToShow) {
-        List<dynamic> dayTrips = triplogs[date] ?? [];
+        // List<dynamic> dayTrips = triplogs[date] ?? [];
+        // List<dynamic> dayTrips = triplogs[date] ?? [];
+        List<dynamic> originalTrips = triplogs[date] ?? [];
+        List<dynamic> dayTrips = selectedVehicleFilter == null
+            ? originalTrips
+            : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
 
         for (var tripRaw in dayTrips) {
           final trip = Map<String, dynamic>.from(tripRaw);
@@ -388,7 +350,6 @@ class _HistoryPageState extends State<HistoryPage> {
           });
         }
       }
-
       return allTrips;
     }
 
@@ -432,7 +393,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           total_distance.toStringAsFixed(2),
                           total_expenditure.toStringAsFixed(2),
                           userData?['name'],
-                          userData?['emp_id'],
+                          userData?['emp_id']
                         );
                       },
                       icon: Icon(
@@ -486,246 +447,179 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ),
       ),
-      body:
-          isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  color: CupertinoColors.activeBlue,
-                  backgroundColor: Colors.lightBlueAccent,
-                ),
-              )
-              : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: SingleChildScrollView(
-                  child: Column(
+      body: isLoading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: CupertinoColors.activeBlue,
+          backgroundColor: Colors.lightBlueAccent,
+        ),
+      )
+          : Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              HeatMapCalendarWidget(
+                dateTimeMap: dataforHeatMap,
+                showCalender: true,
+                onDateSelected: (DateTime date, int count) {
+                  String formattedDate =
+                  DateFormat('dd-MM-yyyy').format(date);
+                  setState(() {
+                    customSelectedDates = [formattedDate];
+                    setShowSummary(true);
+                    // date1 =datesToShow as String;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Trip Details"),
+                  Row(
                     children: [
-                      HeatMapCalendarWidget(
-                        dateTimeMap: dataforHeatMap,
-                        showCalender: true,
-                        onDateSelected: (DateTime date, int count) {
-                          String formattedDate = DateFormat(
-                            'dd-MM-yyyy',
-                          ).format(date);
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedVehicleFilter == '2-Wheeler' ? CupertinoColors.activeBlue : Colors.grey[300],
+                        ),
+                        onPressed: () {
                           setState(() {
-                            customSelectedDates = [formattedDate];
-                            setShowSummary(true);
-                            // date1 =datesToShow as String;
+                            selectedVehicleFilter = '2-Wheeler';
+                            calculateTodaysTotalDistanceAndExpenditure();
                           });
                         },
+                        child: Icon(Icons.two_wheeler, color: Colors.black87),
                       ),
-
-                      const SizedBox(height: 10),
-
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //   children: [
-                      //     Text(
-                      //       "Trip details",
-                      //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      //     ),
-                      //     Row(
-                      //       children: [
-                      //         ElevatedButton(
-                      //           onPressed: () {},
-                      //           child: Icon(Icons.two_wheeler)
-                      //         ),
-                      //         SizedBox(width: 8),
-                      //         ElevatedButton(
-                      //           onPressed: () {},
-                      //           child: Icon(CupertinoIcons.car_detailed),
-                      //         ),
-                      //         SizedBox(width: 8),
-                      //         ElevatedButton(
-                      //           onPressed: () {},
-                      //           child: Text("All"),
-                      //         ),
-                      //       ],
-                      //     ),
-                      //   ],
-                      // ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 14.0),
-                            child: Text(
-                              "Details",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: CupertinoColors.systemBlue,
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              FilterButton(
-                                onPressed: () {
-                                  setState(() {
-                                    selectedVehicleFilter = '2-Wheeler';
-                                  });
-                                },
-                                icon: Icons.two_wheeler,
-                                backgroundColor: selectedVehicleFilter == '2-Wheeler'
-                                    ? CupertinoColors.activeBlue
-                                    : CupertinoColors.systemGrey6,
-                                iconColor: selectedVehicleFilter == '2-Wheeler'
-                                    ? CupertinoColors.white
-                                    : CupertinoColors.activeBlue,
-                              ),
-                              SizedBox(width:10),
-                              FilterButton(
-                                icon: Icons.directions_car_filled,
-                                backgroundColor:
-                                      selectedVehicleFilter == '4-Wheeler'
-                                          ? CupertinoColors.activeBlue
-                                          : CupertinoColors.systemGrey6,
-                                onPressed: () {
-                                  setState(() {
-                                    selectedVehicleFilter = '4-Wheeler';
-                                  });
-                                },
-                                iconColor: selectedVehicleFilter == '4-Wheeler'
-                                    ? CupertinoColors.white
-                                    : CupertinoColors.activeBlue,
-                              ),
-                              SizedBox(width:10),
-                              FilterButton(
-                                wantText: true,
-                                BtnText: " All ",
-                                iconColor: selectedVehicleFilter == null
-                                    ? CupertinoColors.white
-                                    : CupertinoColors.activeBlue,
-                                backgroundColor:
-                                      selectedVehicleFilter == null
-                                          ? CupertinoColors.activeBlue
-                                          : CupertinoColors.systemGrey6,
-                                onPressed: () {
-                                  setState(() {
-                                    selectedVehicleFilter = null;
-                                  });
-                                },
-                              ),
-                              SizedBox(width:10),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      if (noLogsAvailable)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 30),
-                          child: Center(
-                            child: Text(
-                              "No logs to show!",
-                              style: TextStyle(
-                                color: CupertinoColors.systemGrey2,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ListView.builder(
-                          itemCount: datesToShow.length,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder: (context, dateIndex) {
-                            String date = datesToShow[dateIndex];
-                            // List<dynamic> dayTrips = triplogs[date] ?? [];
-                            List<dynamic> originalTrips = triplogs[date] ?? [];
-                            List<dynamic> dayTrips =
-                                selectedVehicleFilter == null
-                                    ? originalTrips
-                                    : originalTrips
-                                        .where(
-                                          (trip) =>
-                                              trip['vehicle'] ==
-                                              selectedVehicleFilter,
-                                        )
-                                        .toList();
-
-                            if (dayTrips.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SimpleContainer(
-                                  title: date,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemCount: dayTrips.length,
-                                        itemBuilder: (context, tripIndex) {
-                                          final trip =
-                                              Map<String, dynamic>.from(
-                                                dayTrips[tripIndex],
-                                              );
-
-                                          return ExpandableTripSummaryCard(
-                                                from: trip['from'] ?? "~",
-                                                to: trip['to'] ?? "~",
-                                                departureTime:
-                                                    trip['depart'] ?? "~",
-                                                arrivalTime:
-                                                    trip['arrive'] ?? "~",
-                                                distance:
-                                                    trip['distance']
-                                                        ?.toString() ??
-                                                    "~",
-                                                expense:
-                                                    trip['travel_cost']
-                                                        ?.toString() ??
-                                                    "~",
-                                                riding: trip['to'] == "~",
-                                                assetImage:
-                                                    trip['vehicle'] ==
-                                                            "2-Wheeler"
-                                                        ? "Assets/bg_icon.png"
-                                                        : "Assets/bg_icon2.png",
-                                                startLat:
-                                                    trip["start"]['latitude'],
-                                                startLng:
-                                                    trip['start']['longitude'],
-                                                endLat: trip['end']?['latitude'] ?? 0.0,
-                                                endLng:
-                                                    trip['end']?['longitude'] ?? 0.0,
-                                                routeData: trip['route'],
-                                              )
-                                              .animate()
-                                              .fade(duration: 400.ms)
-                                              .scale(
-                                                begin: Offset(0.8, 0.8),
-                                                end: Offset(1, 1),
-                                                curve: Curves.easeOut,
-                                              )
-                                              .moveY(
-                                                begin: 30,
-                                                end: 0,
-                                                duration: 500.ms,
-                                                curve: Curves.easeOutBack,
-                                              );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedVehicleFilter == '4-Wheeler' ? CupertinoColors.activeBlue : Colors.grey[300],
                         ),
-                      SizedBox(height: 50),
+                        onPressed: () {
+                          setState(() {
+                            selectedVehicleFilter = '4-Wheeler';
+                            calculateTodaysTotalDistanceAndExpenditure();
+                          });
+                        },
+                        child: Icon(CupertinoIcons.car_detailed, color: Colors.black87),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedVehicleFilter == null ? CupertinoColors.activeBlue : Colors.grey[300],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            selectedVehicleFilter = null;
+                          });
+                        },
+                        child: Text("All", style: TextStyle(color: Colors.black87)),
+                      ),
                     ],
                   ),
-                ),
+
+                ],
               ),
+
+                      const SizedBox(height: 10),
+
+              if (noLogsAvailable)
+                Padding(
+                  padding: const EdgeInsets.only(top: 30),
+
+                  child: Center(
+                    child: Text(
+                      "No logs to show!",
+                      style: TextStyle(
+                        color: CupertinoColors.systemGrey2,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  itemCount: datesToShow.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, dateIndex) {
+                    String date = datesToShow[dateIndex];
+                    // List<dynamic> dayTrips = triplogs[date] ?? [];
+                    List<dynamic> originalTrips = triplogs[date] ?? [];
+                    List<dynamic> dayTrips = selectedVehicleFilter == null
+                        ? originalTrips
+                        : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
+
+                    if (dayTrips.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SimpleContainer(
+                          title: date,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics:
+                                const NeverScrollableScrollPhysics(),
+                                itemCount: dayTrips.length,
+                                itemBuilder: (context, tripIndex) {
+                                  final trip = Map<String, dynamic>.from(
+                                      dayTrips[tripIndex]);
+
+                                  return ExpandableTripSummaryCard(
+                                    from: trip['from'] ?? "~",
+                                    to: trip['to'] ?? "~",
+                                    departureTime: trip['depart'] ?? "~",
+                                    arrivalTime: trip['arrive'] ?? "~",
+                                    distance:
+                                    trip['distance']?.toString() ?? "~",
+                                    expense: trip['travel_cost']
+                                        ?.toString() ??
+                                        "~",
+                                    riding: trip['to'] == "~",
+                                    assetImage: trip['vehicle'] ==
+                                        "2-Wheeler"
+                                        ? "Assets/bg_icon.png"
+                                        : "Assets/bg_icon2.png",
+                                    startLat: trip["start"]['latitude'],
+                                    startLng: trip['start']['longitude'],
+                                    endLat: trip['end']['latitude'],
+                                    endLng: trip['end']['longitude'],
+                                    routeData: trip['route'],
+                                  )
+                                      .animate()
+                                      .fade(duration: 400.ms)
+                                      .scale(
+                                    begin: Offset(0.8, 0.8),
+                                    end: Offset(1, 1),
+                                    curve: Curves.easeOut,
+                                  )
+                                      .moveY(
+                                    begin: 30,
+                                    end: 0,
+                                    duration: 500.ms,
+                                    curve: Curves.easeOutBack,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              SizedBox(height: 50,)
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
