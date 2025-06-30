@@ -33,18 +33,18 @@ class _HeatMapCalendarWidgetState extends State<HeatMapCalendarWidget> {
     final filteredMap = widget.dateTimeMap.map((key, value) => MapEntry(key, value ?? 0));
     return HeatMapCalendar(
 
-      defaultColor: AppColors.customWhite,
+      defaultColor: CupertinoColors.systemGrey6,
       size: widget.size,
       flexible: widget.flexible,
       showColorTip: false,
       monthFontSize: 20,
       weekFontSize: 14,
-      textColor: Colors.black,
-      weekTextColor: AppColors.customBgPrimary,
+      textColor: CupertinoColors.systemGrey3,
+      weekTextColor: CupertinoColors.activeBlue,
       colorMode: ColorMode.color,
       datasets: filteredMap,
       colorsets: {
-        for (int i = 1; i <= 100; i++) i: AppColors.customGreen,
+        for (int i = 1; i <= 100; i++) i: CupertinoColors.activeBlue,
       },
 
       onClick: widget.onDateSelected != null
