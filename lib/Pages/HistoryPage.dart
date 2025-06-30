@@ -308,7 +308,7 @@ class _HistoryPageState extends State<HistoryPage> {
           if (expenditure != null && distance != null) {
             totalExpenditure += expenditure;
             totalDistance += distance;
-          }
+          }}
 
       }
 
@@ -473,56 +473,75 @@ class _HistoryPageState extends State<HistoryPage> {
                 },
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Trip Details"),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 14.0),
+                    child: Text(
+                      "Details",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.systemBlue,
+                      ),
+                    ),
+                  ),
                   Row(
                     children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: selectedVehicleFilter == '2-Wheeler' ? CupertinoColors.activeBlue : Colors.grey[300],
-                        ),
+                      FilterButton(
                         onPressed: () {
                           setState(() {
                             selectedVehicleFilter = '2-Wheeler';
-                            calculateTodaysTotalDistanceAndExpenditure();
                           });
                         },
-                        child: Icon(Icons.two_wheeler, color: Colors.black87),
+                        icon: Icons.two_wheeler,
+                        backgroundColor: selectedVehicleFilter == '2-Wheeler'
+                            ? CupertinoColors.activeBlue
+                            : CupertinoColors.systemGrey6,
+                        iconColor: selectedVehicleFilter == '2-Wheeler'
+                            ? CupertinoColors.white
+                            : CupertinoColors.activeBlue,
                       ),
-                      SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: selectedVehicleFilter == '4-Wheeler' ? CupertinoColors.activeBlue : Colors.grey[300],
-                        ),
+                      SizedBox(width:10),
+                      FilterButton(
+                        icon: Icons.directions_car_filled,
+                        backgroundColor:
+                        selectedVehicleFilter == '4-Wheeler'
+                            ? CupertinoColors.activeBlue
+                            : CupertinoColors.systemGrey6,
                         onPressed: () {
                           setState(() {
                             selectedVehicleFilter = '4-Wheeler';
-                            calculateTodaysTotalDistanceAndExpenditure();
                           });
                         },
-                        child: Icon(CupertinoIcons.car_detailed, color: Colors.black87),
+                        iconColor: selectedVehicleFilter == '4-Wheeler'
+                            ? CupertinoColors.white
+                            : CupertinoColors.activeBlue,
                       ),
-                      SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: selectedVehicleFilter == null ? CupertinoColors.activeBlue : Colors.grey[300],
-                        ),
+                      SizedBox(width:10),
+                      FilterButton(
+                        wantText: true,
+                        BtnText: " All ",
+                        iconColor: selectedVehicleFilter == null
+                            ? CupertinoColors.white
+                            : CupertinoColors.activeBlue,
+                        backgroundColor:
+                        selectedVehicleFilter == null
+                            ? CupertinoColors.activeBlue
+                            : CupertinoColors.systemGrey6,
                         onPressed: () {
                           setState(() {
                             selectedVehicleFilter = null;
                           });
                         },
-                        child: Text("All", style: TextStyle(color: Colors.black87)),
                       ),
+                      SizedBox(width:10),
                     ],
                   ),
-
                 ],
               ),
-
                       const SizedBox(height: 10),
 
               if (noLogsAvailable)
