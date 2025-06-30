@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:latlong2/latlong.dart' as gmaps;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Buttons.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
@@ -76,12 +77,12 @@ class _MyHomePageState extends State<MyHomePage> {
     double total_distance2 = 0.0;
 
     TodaysTripLogs.forEach((log) {
-      final distance = double.tryParse(log['distance']) ?? 0.0;
+      final distanceStr = log['distance']?.toString();
+      final distance = double.tryParse(distanceStr ?? '') ?? 0.0;
       print("_________$distance");
-      if (distance != null) {
-        total_distance2 += distance;
-      }
+      total_distance2 += distance;
     });
+
 
     setState(() {
       total_distance = total_distance2;
@@ -194,15 +195,21 @@ class _MyHomePageState extends State<MyHomePage> {
                               if (val != "Other") {
                                 LatLng? target = locationCoordinates[val!];
                                 if (target == null) return;
-                                Position currentLocation =
-                                    await Geolocator.getCurrentPosition();
-                                double distancedifference =
-                                    Geolocator.distanceBetween(
-                                      currentLocation.latitude,
-                                      currentLocation.longitude,
-                                      target.latitude,
-                                      target.longitude,
-                                    );
+
+                                final status = await Permission.location.request();
+                                if(status.isDenied){
+                                  Permission.location.request();
+                                }
+                                if(status.isGranted) {
+                                  Position currentLocation =
+                                  await Geolocator.getCurrentPosition();
+                                  double distancedifference =
+                                  Geolocator.distanceBetween(
+                                    currentLocation.latitude,
+                                    currentLocation.longitude,
+                                    target.latitude,
+                                    target.longitude,
+                                  );
 
                                 if (distancedifference < 100) {
                                   setState(() {
@@ -213,7 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     checked = false;
                                   });
                                 }
-                              } else {
+                              } }else {
                                 setState(() {
                                   checked = true;
                                 });
@@ -231,14 +238,29 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
               onConfirmButtonPressed: () async {
-                await startTrip();
-                setEnabledStatus(true);
-                print("SELECTED LOC :: $selectedLocation");
-                getUserData();
-                Navigator.pop(context);
+
+                setState(() {
+                  isLoading = true;
+                });
+
+                try{
+                  await startTrip();
+                  setEnabledStatus(true);
+                  print("SELECTED LOC :: $selectedLocation");
+                  getUserData();
+                  Navigator.pop(context);
+                } catch (e){
+                  print("$e Something went wrong!");
+                } finally {
+                  setState((){
+                    isLoading = false;
+                    print("this is getting called");
+                  });
+                }
+
               },
               confirmBtnText: "Start",
-              confirmBtnState: !checked,
+              confirmBtnState: !checked || isLoading,
             );
           },
         );
@@ -247,33 +269,84 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void showEndTripAlertDialog() {
+    bool endTripLoading = false;
+    bool contentFilled = false;
     showDialog(
       context: context,
       builder: (context) {
-        return SimpleAlertDialog(
-          title: "End Trip",
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                hintText: "Enter Destination",
-                controller: DestinationLocation,
+        return StatefulBuilder(
+            builder: (context, setDialogState) {
+          DestinationLocation.addListener(() {
+            final filled = DestinationLocation.text.isNotEmpty &&
+                DescriptionText.text.isNotEmpty;
+            if (filled != contentFilled) {
+              setDialogState(() {
+                contentFilled = filled;
+              });
+            }
+          });
+
+          DescriptionText.addListener(() {
+            final filled = DestinationLocation.text.isNotEmpty &&
+                DescriptionText.text.isNotEmpty;
+            if (filled != contentFilled) {
+              setDialogState(() {
+                contentFilled = filled;
+              });
+            }
+          });
+
+          return SimpleAlertDialog(
+            title: "End Trip",
+            content: endTripLoading
+                ? SizedBox(
+              height: 50,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: CupertinoColors.activeBlue,
+                  backgroundColor: Colors.lightBlueAccent,
+                ),
               ),
-              const SizedBox(height: 18),
-              DescriptionTextField(
-                hintText: "Description",
-                controller: DescriptionText,
-              ),
-            ],
-          ),
-          onConfirmButtonPressed: () async {
-            await endTrip();
-            setEnabledStatus(false);
-            getUserData();
-            Navigator.pop(context);
-          },
-          confirmBtnText: "Save",
-        );
+            )
+                : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomTextField(
+                  hintText: "Enter Destination",
+                  controller: DestinationLocation,
+                ),
+                const SizedBox(height: 18),
+                DescriptionTextField(
+                  hintText: "Description",
+                  controller: DescriptionText,
+                ),
+              ],
+            ),
+            onConfirmButtonPressed: () async {
+
+              setDialogState((){
+                endTripLoading = true;
+              });
+
+              try{
+                await endTrip();
+                setEnabledStatus(false);
+                getUserData();
+                Navigator.pop(context);
+              } catch(e) {
+                print("$e Something went wrong!");
+              } finally {
+                setDialogState(() {
+                  endTripLoading = false;
+                });
+              }
+            },
+            confirmBtnText: "Save",
+            confirmBtnState: endTripLoading || !contentFilled,
+          );
+
+        });
+
       },
     );
   }
@@ -605,6 +678,57 @@ class _MyHomePageState extends State<MyHomePage> {
       isSquareButtonEnabled = val;
     });
   }
+  void showTripStartedBanner(BuildContext context) {
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 80,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 400),
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: CupertinoColors.activeGreen.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.greenAccent.withOpacity(0.5),
+                  blurRadius: 20,
+                  spreadRadius: 1,
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.directions_bike_rounded, color: Colors.white, size: 32),
+                SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Trip Started!",
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "Tracking in progress...",
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(Duration(seconds: 3), () => entry.remove());
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -621,7 +745,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return Scaffold(
-      floatingActionButton: TransparentFab(
+      floatingActionButton: isSquareButtonEnabled ?
+      TripStartedContainer()
+          : TransparentFab(
         expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0",
         kms: total_distance?.toStringAsFixed(2) ?? "0.0",
         text1: "Today's Expenditure",
