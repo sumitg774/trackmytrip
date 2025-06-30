@@ -46,12 +46,15 @@ class _HistoryPageState extends State<HistoryPage> {
   String? selectedDate1;
   List<String> customSelectedDates = [];
 
+
   @override
   void initState() {
     super.initState();
     getUserData();
     setShowSummary(false);
     customSelectedDates = [];
+
+
   }
 
   void setShowSummary(bool value) {
@@ -80,6 +83,8 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     print(":::: $userData");
+
+
   }
 
   Future<void> OpenSetDateDialog() async {
@@ -275,6 +280,7 @@ class _HistoryPageState extends State<HistoryPage> {
     Map<String, dynamic> triplogs = Map<String, dynamic>.from(
       userData?['triplogs'] ?? {},
     );
+
     bool noLogsAvailable = datesToShow.every((date) =>
     triplogs[date] == null || (triplogs[date] as List).isEmpty);
 
@@ -291,40 +297,65 @@ class _HistoryPageState extends State<HistoryPage> {
       }
     });
 
-    // Check if custom selected dates have no logs
-    // bool noLogsForCustomDates = customSelectedDates.isNotEmpty &&
-    //     customSelectedDates.every((date) =>
-    //     (triplogs[date] == null || (triplogs[date] as List).isEmpty));
-
     print("Dates to show: $datesToShow");
 
+    // void calculateTodaysTotalDistanceAndExpenditure() {
+    //   double total_expenditure2 = 0.0;
+    //   double total_distance2 = 0.0;
+    //
+    //   for (String date in datesToShow) {
+    //     final logs = triplogs[date];
+    //
+    //     if (logs != null && logs is List) {
+    //       for (var log in logs) {
+    //         final expenditure = double.tryParse(log['travel_cost'].toString());
+    //         final distance = double.tryParse(log['distance'].toString());
+    //         if (expenditure != null && distance != null) {
+    //           total_expenditure2 += expenditure;
+    //           total_distance2 += distance;
+    //         }
+    //       }
+    //     } else {
+    //       print("No trip logs found for $date");
+    //     }
+    //   }
+    //
+    //   setState(() {
+    //     total_expenditure = total_expenditure2;
+    //     total_distance = total_distance2;
+    //   });
+    //
+    //   print("TOTAL:EXP =  $total_expenditure");
+    //   print("TOTAL:DIST = $total_distance");
+    // }
+
     void calculateTodaysTotalDistanceAndExpenditure() {
-      double total_expenditure2 = 0.0;
-      double total_distance2 = 0.0;
+      double totalExpenditure = 0.0;
+      double totalDistance = 0.0;
 
       for (String date in datesToShow) {
-        final logs = triplogs[date];
+        List<dynamic> originalTrips = triplogs[date] ?? [];
+        List<dynamic> dayTrips = selectedVehicleFilter == null
+            ? originalTrips
+            : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
 
-        if (logs != null && logs is List) {
-          for (var log in logs) {
-            final expenditure = double.tryParse(log['travel_cost'].toString());
-            final distance = double.tryParse(log['distance'].toString());
-            if (expenditure != null && distance != null) {
-              total_expenditure2 += expenditure;
-              total_distance2 += distance;
-            }
+        for (var trip in dayTrips) {
+          final expenditure = double.tryParse(trip['travel_cost'].toString());
+          final distance = double.tryParse(trip['distance'].toString());
+
+          if (expenditure != null && distance != null) {
+            totalExpenditure += expenditure;
+            totalDistance += distance;
           }
-        } else {
-          print("No trip logs found for $date");
         }
       }
 
       setState(() {
-        total_expenditure = total_expenditure2;
-        total_distance = total_distance2;
+        total_expenditure = totalExpenditure;
+        total_distance = totalDistance;
       });
 
-      print("TOTAL:EXP =  $total_expenditure");
+      print("TOTAL:EXP = $total_expenditure");
       print("TOTAL:DIST = $total_distance");
     }
 
@@ -334,7 +365,12 @@ class _HistoryPageState extends State<HistoryPage> {
       List<Map<String, dynamic>> allTrips = [];
 
       for (String date in datesToShow) {
-        List<dynamic> dayTrips = triplogs[date] ?? [];
+        // List<dynamic> dayTrips = triplogs[date] ?? [];
+        // List<dynamic> dayTrips = triplogs[date] ?? [];
+        List<dynamic> originalTrips = triplogs[date] ?? [];
+        List<dynamic> dayTrips = selectedVehicleFilter == null
+            ? originalTrips
+            : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
 
         for (var tripRaw in dayTrips) {
           final trip = Map<String, dynamic>.from(tripRaw);
@@ -352,13 +388,12 @@ class _HistoryPageState extends State<HistoryPage> {
           });
         }
       }
-
       return allTrips;
     }
 
     return Scaffold(
       backgroundColor: CupertinoColors.white,
-      floatingActionButton: Column(
+      floatingActionButton: noLogsAvailable? null:Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
@@ -477,34 +512,6 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
 
               const SizedBox(height: 30),
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     Text(
-              //       "Trip details",
-              //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              //     ),
-              //     Row(
-              //       children: [
-              //         ElevatedButton(
-              //           onPressed: () {},
-              //           child: Icon(Icons.two_wheeler)
-              //         ),
-              //         SizedBox(width: 8),
-              //         ElevatedButton(
-              //           onPressed: () {},
-              //           child: Icon(CupertinoIcons.car_detailed),
-              //         ),
-              //         SizedBox(width: 8),
-              //         ElevatedButton(
-              //           onPressed: () {},
-              //           child: Text("All"),
-              //         ),
-              //       ],
-              //     ),
-              //   ],
-              // ),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -518,6 +525,7 @@ class _HistoryPageState extends State<HistoryPage> {
                         onPressed: () {
                           setState(() {
                             selectedVehicleFilter = '2-Wheeler';
+                            calculateTodaysTotalDistanceAndExpenditure();
                           });
                         },
                         child: Icon(Icons.two_wheeler, color: Colors.black87),
@@ -530,6 +538,7 @@ class _HistoryPageState extends State<HistoryPage> {
                         onPressed: () {
                           setState(() {
                             selectedVehicleFilter = '4-Wheeler';
+                            calculateTodaysTotalDistanceAndExpenditure();
                           });
                         },
                         child: Icon(CupertinoIcons.car_detailed, color: Colors.black87),
