@@ -83,7 +83,6 @@ class _MyHomePageState extends State<MyHomePage> {
       total_distance2 += distance;
     });
 
-
     setState(() {
       total_distance = total_distance2;
     });
@@ -196,31 +195,33 @@ class _MyHomePageState extends State<MyHomePage> {
                                 LatLng? target = locationCoordinates[val!];
                                 if (target == null) return;
 
-                                final status = await Permission.location.request();
-                                if(status.isDenied){
+                                final status =
+                                    await Permission.location.request();
+                                if (status.isDenied) {
                                   Permission.location.request();
                                 }
-                                if(status.isGranted) {
+                                if (status.isGranted) {
                                   Position currentLocation =
-                                  await Geolocator.getCurrentPosition();
+                                      await Geolocator.getCurrentPosition();
                                   double distancedifference =
-                                  Geolocator.distanceBetween(
-                                    currentLocation.latitude,
-                                    currentLocation.longitude,
-                                    target.latitude,
-                                    target.longitude,
-                                  );
+                                      Geolocator.distanceBetween(
+                                        currentLocation.latitude,
+                                        currentLocation.longitude,
+                                        target.latitude,
+                                        target.longitude,
+                                      );
 
-                                if (distancedifference < 100) {
-                                  setState(() {
-                                    checked = true;
-                                  });
-                                } else {
-                                  setState(() {
-                                    checked = false;
-                                  });
+                                  if (distancedifference < 100) {
+                                    setState(() {
+                                      checked = true;
+                                    });
+                                  } else {
+                                    setState(() {
+                                      checked = false;
+                                    });
+                                  }
                                 }
-                              } }else {
+                              } else {
                                 setState(() {
                                   checked = true;
                                 });
@@ -238,26 +239,24 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
               onConfirmButtonPressed: () async {
-
                 setState(() {
                   isLoading = true;
                 });
 
-                try{
+                try {
                   await startTrip();
                   setEnabledStatus(true);
                   print("SELECTED LOC :: $selectedLocation");
                   getUserData();
                   Navigator.pop(context);
-                } catch (e){
+                } catch (e) {
                   print("$e Something went wrong!");
                 } finally {
-                  setState((){
+                  setState(() {
                     isLoading = false;
                     print("this is getting called");
                   });
                 }
-
               },
               confirmBtnText: "Start",
               confirmBtnState: !checked || isLoading,
@@ -275,78 +274,79 @@ class _MyHomePageState extends State<MyHomePage> {
       context: context,
       builder: (context) {
         return StatefulBuilder(
-            builder: (context, setDialogState) {
-          DestinationLocation.addListener(() {
-            final filled = DestinationLocation.text.isNotEmpty &&
-                DescriptionText.text.isNotEmpty;
-            if (filled != contentFilled) {
-              setDialogState(() {
-                contentFilled = filled;
-              });
-            }
-          });
-
-          DescriptionText.addListener(() {
-            final filled = DestinationLocation.text.isNotEmpty &&
-                DescriptionText.text.isNotEmpty;
-            if (filled != contentFilled) {
-              setDialogState(() {
-                contentFilled = filled;
-              });
-            }
-          });
-
-          return SimpleAlertDialog(
-            title: "End Trip",
-            content: endTripLoading
-                ? SizedBox(
-              height: 50,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: CupertinoColors.activeBlue,
-                  backgroundColor: Colors.lightBlueAccent,
-                ),
-              ),
-            )
-                : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomTextField(
-                  hintText: "Enter Destination",
-                  controller: DestinationLocation,
-                ),
-                const SizedBox(height: 18),
-                DescriptionTextField(
-                  hintText: "Description",
-                  controller: DescriptionText,
-                ),
-              ],
-            ),
-            onConfirmButtonPressed: () async {
-
-              setDialogState((){
-                endTripLoading = true;
-              });
-
-              try{
-                await endTrip();
-                setEnabledStatus(false);
-                getUserData();
-                Navigator.pop(context);
-              } catch(e) {
-                print("$e Something went wrong!");
-              } finally {
+          builder: (context, setDialogState) {
+            DestinationLocation.addListener(() {
+              final filled =
+                  DestinationLocation.text.isNotEmpty &&
+                  DescriptionText.text.isNotEmpty;
+              if (filled != contentFilled) {
                 setDialogState(() {
-                  endTripLoading = false;
+                  contentFilled = filled;
                 });
               }
-            },
-            confirmBtnText: "Save",
-            confirmBtnState: endTripLoading || !contentFilled,
-          );
+            });
 
-        });
+            DescriptionText.addListener(() {
+              final filled =
+                  DestinationLocation.text.isNotEmpty &&
+                  DescriptionText.text.isNotEmpty;
+              if (filled != contentFilled) {
+                setDialogState(() {
+                  contentFilled = filled;
+                });
+              }
+            });
 
+            return SimpleAlertDialog(
+              title: "End Trip",
+              content:
+                  endTripLoading
+                      ? SizedBox(
+                        height: 50,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: CupertinoColors.activeBlue,
+                            backgroundColor: Colors.lightBlueAccent,
+                          ),
+                        ),
+                      )
+                      : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CustomTextField(
+                            hintText: "Enter Destination",
+                            controller: DestinationLocation,
+                          ),
+                          const SizedBox(height: 18),
+                          DescriptionTextField(
+                            hintText: "Description",
+                            controller: DescriptionText,
+                          ),
+                        ],
+                      ),
+              onConfirmButtonPressed: () async {
+                setDialogState(() {
+                  endTripLoading = true;
+                });
+
+                try {
+                  await endTrip();
+                  setEnabledStatus(false);
+                  getUserData();
+                  Navigator.pop(context);
+                } catch (e) {
+                  print("$e Something went wrong!");
+                } finally {
+                  setDialogState(() {
+                    endTripLoading = false;
+                  });
+                }
+              },
+              confirmBtnText: "Save",
+              confirmBtnState: endTripLoading || !contentFilled,
+            );
+          },
+        );
       },
     );
   }
@@ -365,9 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void SignOut() {
     FirebaseAuth.instance.signOut();
-    StorageService
-        .instance
-        .clearAll();
+    StorageService.instance.clearAll();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -379,6 +377,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<LatLng> routeCoordinates = [];
 
   Future<void> startTrip() async {
+    routeCoordinates.clear();
     final Uuid _uuid = Uuid();
 
     try {
@@ -473,6 +472,7 @@ class _MyHomePageState extends State<MyHomePage> {
       print("An Error Occurred: $e");
     }
   }
+
 
   Future<double?> getRouteDistanceFromORS({
     required double startLat,
@@ -649,6 +649,8 @@ class _MyHomePageState extends State<MyHomePage> {
         'triplogs': {date: tripsForToday},
       }, SetOptions(merge: true));
 
+      routeCoordinates.clear();
+      print("route Co-ordinates updated and cleared.");
       print("Trip ended and Firebase updated successfully.");
     } catch (e) {
       print("An error occurred: $e");
@@ -678,57 +680,170 @@ class _MyHomePageState extends State<MyHomePage> {
       isSquareButtonEnabled = val;
     });
   }
+
   void showTripStartedBanner(BuildContext context) {
     final overlay = Overlay.of(context);
     final entry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: 80,
-        left: 20,
-        right: 20,
-        child: Material(
-          color: Colors.transparent,
-          child: AnimatedContainer(
-            duration: Duration(milliseconds: 400),
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: CupertinoColors.activeGreen.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.greenAccent.withOpacity(0.5),
-                  blurRadius: 20,
-                  spreadRadius: 1,
-                )
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.directions_bike_rounded, color: Colors.white, size: 32),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Trip Started!",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      "Tracking in progress...",
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+      builder:
+          (context) => Positioned(
+            top: 80,
+            left: 20,
+            right: 20,
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 400),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.activeGreen.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.greenAccent.withOpacity(0.5),
+                      blurRadius: 20,
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
-              ],
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.directions_bike_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Trip Started!",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "Tracking in progress...",
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
     );
 
     overlay.insert(entry);
     Future.delayed(Duration(seconds: 3), () => entry.remove());
   }
 
+  void showDeleteTripLogDialog(int index) {
+    bool deleteLoading = false;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SimpleAlertDialog(
+              title: 'Delete Trip log',
+              content: deleteLoading
+                  ? SizedBox(
+                height: 50,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: CupertinoColors.activeBlue,
+                    backgroundColor: Colors.lightBlueAccent,
+                  ),
+                ),
+              )
+                  : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.delete,
+                    size: 40,
+                    color: CupertinoColors.destructiveRed,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Are you sure to permanently delete this trip log?",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+              onConfirmButtonPressed: () async {
+                setState(() {
+                  deleteLoading = true;
+                });
+                try {
+                  await deleteTripLog(index);
+                  Navigator.pop(context); // Close dialog after delete
+                } catch (e) {
+                  print("$e Something went wrong!");
+                } finally {
+                  setState(() {
+                    deleteLoading = false;
+                  });
+                }
+              },
+              confirmBtnText: 'Delete',
+              confirmBtnState: deleteLoading,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  deleteTripLog(int index) async {
+    try {
+      String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+      String? collectionName =
+          await StorageService.instance.getCollectionName();
+      String? uid = FirebaseAuth.instance.currentUser?.uid;
+      if (collectionName == null || uid == null) {
+        print("Collection name or UID is null.");
+        return;
+      }
+
+      final userDocRef = FirebaseFirestore.instance
+          .collection(collectionName)
+          .doc(uid);
+
+      final snapshot = await userDocRef.get();
+      if (!snapshot.exists) {
+        print("User document does not exist.");
+        return;
+      }
+
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      Map<String, dynamic> triplogs = Map<String, dynamic>.from(
+        data['triplogs'] ?? {},
+      );
+      List<dynamic> todaysTrips = List.from(triplogs[date] ?? []);
+
+      if (index < 0 || index >= todaysTrips.length) {
+        print("Invalid index: $index");
+        return;
+      }
+
+      // Remove the trip at the given index
+      todaysTrips.removeAt(index);
+
+      // Update the document
+      await userDocRef.update({'triplogs.$date': todaysTrips});
+
+      getUserData();
+      print("Trip at index $index deleted for $date.");
+    } catch (e) {
+      print("Error deleting trip: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -745,14 +860,15 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return Scaffold(
-      floatingActionButton: isSquareButtonEnabled ?
-      TripStartedContainer()
-          : TransparentFab(
-        expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0",
-        kms: total_distance?.toStringAsFixed(2) ?? "0.0",
-        text1: "Today's Expenditure",
-        text2: "Today's Distance",
-      ),
+      floatingActionButton:
+          isSquareButtonEnabled
+              ? TripStartedContainer()
+              : TransparentFab(
+                expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0",
+                kms: total_distance?.toStringAsFixed(2) ?? "0.0",
+                text1: "Today's Expenditure",
+                text2: "Today's Distance",
+              ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       backgroundColor: CupertinoColors.white,
       appBar: AppBar(
@@ -920,17 +1036,22 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     "2-Wheeler"
                                                 ? "Assets/bg_icon.png"
                                                 : "Assets/bg_icon2.png",
+                                        onSlideFunction: (context) {
+                                          showDeleteTripLogDialog(index);
+                                        },
                                       )
                                       .animate()
-                                      .fade(
-                                        duration: 100.ms,
+                                      .fade(duration: 400.ms)
+                                      .scale(
+                                        begin: Offset(0.8, 0.8),
+                                        end: Offset(1, 1),
                                         curve: Curves.easeOut,
-                                        delay: 100.ms,
                                       )
-                                      .slideY(
-                                        begin: 1.8,
-                                        curve: Curves.fastEaseInToSlowEaseOut,
-                                        duration: 1000.ms,
+                                      .moveY(
+                                        begin: 30,
+                                        end: 0,
+                                        duration: 500.ms,
+                                        curve: Curves.easeOutBack,
                                       );
                                 },
                               ),
