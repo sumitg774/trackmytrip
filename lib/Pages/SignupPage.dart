@@ -220,27 +220,27 @@ class _SignupPageState extends State<SignupPage> {
       Navigator.pop(context); // this removes the loading indicator
 
       // Show success and navigate
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            "Signed up successfully, please wait for admin's approval",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
-          ),
-          showCloseIcon: true,
-          backgroundColor: Colors.green,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
-          ),
-          // Optional: adds spacing around
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: const Text(
+      //       "Signed up successfully, please wait for admin's approval",
+      //       style: TextStyle(
+      //         fontSize: 16,
+      //         fontWeight: FontWeight.w500,
+      //         color: Colors.white,
+      //       ),
+      //     ),
+      //     showCloseIcon: true,
+      //     backgroundColor: Colors.green,
+      //     shape: const RoundedRectangleBorder(
+      //       borderRadius: BorderRadius.only(
+      //         topLeft: Radius.circular(12),
+      //         topRight: Radius.circular(12),
+      //       ),
+      //     ),
+      //     // Optional: adds spacing around
+      //   ),
+      // );
 
       Navigator.pushNamed(context, "/login");
       return true;
