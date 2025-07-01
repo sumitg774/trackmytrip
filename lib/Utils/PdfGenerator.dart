@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
@@ -6,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 
 Future<void> generateTripPdfReport(
@@ -431,18 +433,50 @@ Future<void> generateTripPdfReport(
   );
 
   if (Platform.isAndroid) {
-    var status = await Permission.manageExternalStorage.status;
-    if (!status.isGranted) {
-      status = await Permission.manageExternalStorage.request();
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    String version = androidInfo.version.release;
+    // if (int.parse(version) <= 10) {
+    //   try {
+    //     final downloadsDir = Directory('/storage/emulated/0/Download');
+    //     final file = File('${downloadsDir.path}/TripReport.pdf');
+    //     await file.writeAsBytes(await pdf.save());
+    //     print('✅ PDF saved to  : ${file.path}');
+    //     showSuccessDialog("PDF downloaded at $file", file.path);
+    //   } catch (e) {
+    //     print('❌ Error saving PDF: $e');
+    //   }
+    // }
+    if ( int.parse(version) <= 10) {
+      try {
+        final directory = await getTemporaryDirectory();
+        final filePath = '${directory.path}/TripReport.pdf';
+        final file = File(filePath);
+        await file.writeAsBytes(await pdf.save());
+
+        // Share fallback
+        final xFile = XFile(filePath);
+        await Share.shareXFiles([xFile]);
+
+        print('✅ PDF shared from temp dir : $filePath');
+      } catch (e) {
+        print('❌ Error saving/sharing PDF: $e');
+      }
     }
-    if (status.isGranted) {
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-      final file = File('${downloadsDir.path}/TripReport.pdf');
-      await file.writeAsBytes(await pdf.save());
-      print('✅ PDF saved to: ${file.path}');
-      showSuccessDialog("PDF downloaded at $file", file.path);
-    } else {
-      print('❌ Storage permission denied.');
+    else {
+      var status = await Permission.manageExternalStorage.status;
+      if (!status.isGranted) {
+        status = await Permission.manageExternalStorage.request();
+      }
+      if (status.isGranted) {
+        final downloadsDir = Directory('/storage/emulated/0/Download');
+        final file = File('${downloadsDir.path}/TripReport.pdf');
+        await file.writeAsBytes(await pdf.save());
+        print('✅ PDF saved to : ${file.path}');
+        showSuccessDialog("PDF downloaded at $file", file.path);
+      } else {
+        print('❌ Storage permission denied.');
+      }
     }
   } else if (Platform.isIOS) {
     final output = await getApplicationDocumentsDirectory();
