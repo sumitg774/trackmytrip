@@ -219,6 +219,7 @@ class ExpandableTripSummaryCard extends StatelessWidget {
   final double endLat;
   final double endLng;
   final List<dynamic> routeData;
+  final SlidableActionCallback onSlideFunction;
 
   ExpandableTripSummaryCard({
     super.key,
@@ -234,7 +235,8 @@ class ExpandableTripSummaryCard extends StatelessWidget {
     required this.startLng,
     required this.endLat,
     required this.endLng,
-    required this.routeData
+    required this.routeData,
+    required this.onSlideFunction
   });
 
   @override
@@ -263,168 +265,203 @@ class ExpandableTripSummaryCard extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            // Background image
-            Positioned(
-              right: -15,
-              top: 0,
-              bottom: 0,
-              child: Opacity(
-                opacity: 0.15,
-                child: Image.asset(
-                  assetImage,
-                  fit: BoxFit.cover,
-                  height: 120,
-                  width: 120,
-                ),
+      child: Slidable(
+        endActionPane:  ActionPane(
+            motion: BehindMotion(),
+            extentRatio: 0.25,
+            children: [
+              SlidableAction(
+                onPressed: onSlideFunction,
+                backgroundColor: CupertinoColors.destructiveRed,
+                foregroundColor: Colors.white,
+                borderRadius: BorderRadius.only(topRight: Radius.circular(12), bottomRight: Radius.circular(12)),
+                icon: Icons.delete_forever_rounded,
+              ),
+
+            ]
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border(
+              bottom: BorderSide(
+                color: riding ? CupertinoColors.activeOrange : Colors.white,
+                width: 1.5,
               ),
             ),
-            // Content
-            ExpansionTile(
-              backgroundColor: CupertinoColors.white,
-              showTrailingIcon: false,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 12,), shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero,),
-              childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              title: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      from,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    !riding ? Icons.arrow_forward : Icons.more_horiz_rounded,
-                    size: 20,
-                    color: !riding ? Colors.green : CupertinoColors.activeOrange,
-                  ),
-                  Expanded(
-                    child: Text(
-                      to,
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ],
+            color: CupertinoColors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.05),
+                offset: const Offset(0, 3),
+                blurRadius: 10,
               ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.navigation_rounded, size: 18, color: Colors.blue),
-                        const SizedBox(width: 4),
-                        Text(
-                          "$distance km",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const Icon(Icons.currency_rupee, size: 18, color: Colors.green),
-                        const SizedBox(width: 2),
-                        Text(
-                          expense,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
               children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
+                // Background image
+                Positioned(
+                  right: -15,
+                  top: 0,
+                  bottom: 0,
+                  child: Opacity(
+                    opacity: 0.15,
+                    child: Image.asset(
+                      assetImage,
+                      fit: BoxFit.cover,
+                      height: 120,
+                      width: 120,
+                    ),
+                  ),
+                ),
+                // Content
+                ExpansionTile(
+                  backgroundColor: CupertinoColors.white,
+                  showTrailingIcon: false,
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 12,), shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero,),
+                  childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          from,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        !riding ? Icons.arrow_forward : Icons.more_horiz_rounded,
+                        size: 20,
+                        color: !riding ? Colors.green : CupertinoColors.activeOrange,
+                      ),
+                      Expanded(
+                        child: Text(
+                          to,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Depart: $departureTime',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          'Arrive: $arrivalTime',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        height: 200,
-                        child: FlutterMap(
-                          options: MapOptions(
-                            initialCenter: LatLng(startLat, startLng),
-                            initialZoom: 15,
-                          ),
+                        Row(
                           children: [
-                            TileLayer(
-                              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-
-                            ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: LatLng(startLat, startLng),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(Icons.location_on, color: CupertinoColors.systemGreen),
-                                ),
-                                Marker(
-                                  point: LatLng(endLat, endLng),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(Icons.flag, color: CupertinoColors.systemRed),
-                                ),
-                              ],
-                            ),
-                            PolylineLayer(
-                              polylines: [
-                                Polyline(
-                                  points: polylinePoints,
-                                  color: CupertinoColors.activeBlue,
-                                  strokeWidth: 3.2,
-                                ),
-                              ],
+                            const Icon(Icons.navigation_rounded, size: 18, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text(
+                              "$distance km",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        Row(
+                          children: [
+                            const Icon(Icons.currency_rupee, size: 18, color: Colors.green),
+                            const SizedBox(width: 2),
+                            Text(
+                              expense,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
+                  ),
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Depart: $departureTime',
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              'Arrive: $arrivalTime',
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            height: 200,
+                            child: FlutterMap(
+                              options: MapOptions(
+                                initialCenter: LatLng(startLat, startLng),
+                                initialZoom: 15,
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(startLat, startLng),
+                                      width: 40,
+                                      height: 40,
+                                      child: const Icon(Icons.location_on, color: CupertinoColors.systemGreen),
+                                    ),
+                                    Marker(
+                                      point: LatLng(endLat, endLng),
+                                      width: 40,
+                                      height: 40,
+                                      child: const Icon(Icons.flag, color: CupertinoColors.systemRed),
+                                    ),
+                                  ],
+                                ),
+                                PolylineLayer(
+                                  polylines: [
+                                    Polyline(
+                                      points: polylinePoints,
+                                      color: CupertinoColors.activeBlue,
+                                      strokeWidth: 3.2,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ),
                   ],
+
                 ),
               ],
-
             ),
-          ],
+          ),
         ),
       ),
     );
