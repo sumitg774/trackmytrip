@@ -447,7 +447,7 @@ Future<void> generateTripPdfReport(
     //     print('❌ Error saving PDF: $e');
     //   }
     // }
-    if ( int.parse(version) <= 10) {
+    if (int.parse(version) <= 10) {
       try {
         final directory = await getTemporaryDirectory();
         final filePath = '${directory.path}/TripReport.pdf';
@@ -478,10 +478,21 @@ Future<void> generateTripPdfReport(
         print('❌ Storage permission denied.');
       }
     }
-  } else if (Platform.isIOS) {
-    final output = await getApplicationDocumentsDirectory();
-    final file = File("${output.path}/TripReport.pdf");
-    await file.writeAsBytes(await pdf.save());
-    print('✅ PDF saved to: ${file.path}');
+  }
+  else if (Platform.isIOS) {
+    try {
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/TripReport.pdf';
+      final file = File(filePath);
+      await file.writeAsBytes(await pdf.save());
+
+      final xFile = XFile(filePath);
+      await Share.shareXFiles([xFile]);
+
+      print('✅ PDF shared from : ${file.path}');
+      showSuccessDialog("PDF ready to share from ${file.path}", file.path);
+    } catch (e) {
+      print('❌ Error sharing PDF on iOS: $e');
+    }
   }
 }
