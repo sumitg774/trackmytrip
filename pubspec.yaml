@@ -57,6 +57,9 @@ dependencies:
   device_info_plus: 10.1.2
   share_plus: ^11.0.0
   flutter_slidable: ^4.0.0
+#  open_file: ^3.5.10
+  open_filex: ^4.3.2
+
 
 
 dev_dependencies:

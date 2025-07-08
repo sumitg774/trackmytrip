@@ -926,6 +926,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Text(
                 getGreetingMessage(),
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
+                textAlign: TextAlign.left,
               ),
               Text(
                 userData?['name'] ?? '',
@@ -934,6 +935,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
+                textAlign: TextAlign.left,
               ),
             ],
           ),
