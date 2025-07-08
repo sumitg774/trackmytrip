@@ -918,28 +918,33 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         ),
-        title: Padding(
-          padding: const EdgeInsets.only(left: 10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                getGreetingMessage(),
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-                textAlign: TextAlign.left,
-              ),
-              Text(
-                userData?['name'] ?? '',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  getGreetingMessage(),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  textAlign: TextAlign.left,
                 ),
-                textAlign: TextAlign.left,
-              ),
-            ],
+                Text(
+                  userData?['name'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ],
+            ),
           ),
         ),
+
         backgroundColor: CupertinoColors.white,
       ),
       body: SingleChildScrollView(
