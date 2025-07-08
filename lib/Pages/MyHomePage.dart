@@ -8,12 +8,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:latlong2/latlong.dart' as gmaps;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Buttons.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
@@ -22,6 +24,7 @@ import 'package:trip_tracker_app/Utils/CommonFunctions.dart';
 import 'package:trip_tracker_app/Utils/StorageService.dart';
 import 'package:uuid/uuid.dart';
 
+import '../Utils/BackgroundService.dart';
 import 'LoginPage.dart';
 
 import '../Components/TextFields.dart';
@@ -92,9 +95,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void calculateTodaysTotalExpenditure() {
     double total_expenditure2 = 0.0;
+
     TodaysTripLogs.forEach((log) {
-      final expenditure = double.tryParse(log['travel_cost']);
+      final travelCostRaw = log['travel_cost'];
+      final travelCostStr = travelCostRaw?.toString() ?? '0.0';
+      final expenditure = double.tryParse(travelCostStr);
+
       print("_________$expenditure");
+
       if (expenditure != null) {
         total_expenditure2 += expenditure;
       }
@@ -373,11 +381,10 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  StreamSubscription<Position>? positionStream;
-  List<LatLng> routeCoordinates = [];
+
 
   Future<void> startTrip() async {
-    routeCoordinates.clear();
+    // routeCoordinates.clear();
     final Uuid _uuid = Uuid();
 
     try {
@@ -388,6 +395,9 @@ class _MyHomePageState extends State<MyHomePage> {
           print("Location Permissions are denied!");
           return;
         }
+      }
+      if (permission == LocationPermission.whileInUse){
+          permission = await Geolocator.requestPermission();
       }
 
       Position position = await Geolocator.getCurrentPosition(
@@ -430,8 +440,24 @@ class _MyHomePageState extends State<MyHomePage> {
 
       print("Firebase Updated Successfully");
 
+
+      await FlutterBackgroundService().startService();
+      print("✅ Background service start requested");
+      final isRunning = await FlutterBackgroundService().isRunning();
+      print("📡 Background service running? $isRunning");
+
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('trip_id', tripId);
+      await prefs.setString('uid', uid!);
+      await prefs.setString('collection', collectionName!);
+
+
+      // ✅ Start foreground tracking too
+      CommonFunctions().trackLocationAndUpdateFirebase(tripId, userDocRef, date);
+
       // Start continuous tracking
-      positionStream = Geolocator.getPositionStream(
+      /*positionStream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.best,
           distanceFilter: 7,
@@ -467,7 +493,7 @@ class _MyHomePageState extends State<MyHomePage> {
         await userDocRef.update({'triplogs.$date': todaysTrips});
 
         print("Route updated: ${current.latitude}, ${current.longitude}");
-      });
+      });*/
     } catch (e) {
       print("An Error Occurred: $e");
     }
@@ -535,7 +561,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> stopTrip() async {
-    await positionStream?.cancel();
+    // await positionStream?.cancel();
+    await CommonFunctions.positionStream?.cancel();
+    print("Stream Stopped!");
+    CommonFunctions.positionStream = null;
+
+    FlutterBackgroundService().invoke("stopService");
+    await Future.delayed(Duration(seconds: 1));
+
     print("Tracking stopped");
   }
 
@@ -590,36 +623,25 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       double startlatitude = tripsForToday[indexToUpdate]['start']['latitude'];
-      double startlongitude =
-          tripsForToday[indexToUpdate]['start']['longitude'];
+      double startlongitude = tripsForToday[indexToUpdate]['start']['longitude'];
+      List<dynamic> rawRoute = tripsForToday[indexToUpdate]['route'] ?? [];
+      List<LatLng> routeList = rawRoute
+          .map((e) => LatLng(e['latitude'] as double, e['longitude'] as double))
+          .toList();      print('Route List: $routeList');
 
       print("LAT AND LONGS REQ ::: $startlatitude, $startlongitude");
 
-      // double? routeData = await getRouteDistanceFromORS(
-      //   startLat: startlatitude,
-      //   startLng: startlongitude,
-      //   endLat: endlatitude,
-      //   endLng: endlongitude,
-      // );
-
-      // if (routeData == null) {
-      //   print("Failed to get route distance from ORS");
-      //   return;
-      // }
-      //
-      // print("::::total Distance:::: ${routeData}");
-      //
-      // double? totalDistance = routeData;
-
       await stopTrip();
+      print("✅ Background & foreground tracking stopped, proceeding with end trip logic...");
+
       double totalDistance = 0.0;
 
-      for (int i = 0; i < routeCoordinates.length - 1; i++) {
+      for (int i = 0; i < routeList.length - 1; i++) {
         totalDistance += Geolocator.distanceBetween(
-          routeCoordinates[i].latitude,
-          routeCoordinates[i].longitude,
-          routeCoordinates[i + 1].latitude,
-          routeCoordinates[i + 1].longitude,
+          routeList[i].latitude,
+          routeList[i].longitude,
+          routeList[i + 1].latitude,
+          routeList[i + 1].longitude,
         );
       }
 
@@ -649,7 +671,7 @@ class _MyHomePageState extends State<MyHomePage> {
         'triplogs': {date: tripsForToday},
       }, SetOptions(merge: true));
 
-      routeCoordinates.clear();
+      // routeCoordinates.clear();
       print("route Co-ordinates updated and cleared.");
       print("Trip ended and Firebase updated successfully.");
     } catch (e) {
@@ -780,7 +802,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   deleteLoading = true;
                 });
                 try {
-                  await deleteTripLog(index);
+                  await CommonFunctions().deleteTripLog(
+                      index,
+                      DateFormat('dd-MM-yyyy').format(DateTime.now()),
+                );
+                  getUserData();
                   Navigator.pop(context); // Close dialog after delete
                 } catch (e) {
                   print("$e Something went wrong!");
@@ -788,6 +814,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   setState(() {
                     deleteLoading = false;
                   });
+
                 }
               },
               confirmBtnText: 'Delete',
@@ -797,52 +824,6 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       },
     );
-  }
-
-  deleteTripLog(int index) async {
-    try {
-      String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
-
-      String? collectionName =
-          await StorageService.instance.getCollectionName();
-      String? uid = FirebaseAuth.instance.currentUser?.uid;
-      if (collectionName == null || uid == null) {
-        print("Collection name or UID is null.");
-        return;
-      }
-
-      final userDocRef = FirebaseFirestore.instance
-          .collection(collectionName)
-          .doc(uid);
-
-      final snapshot = await userDocRef.get();
-      if (!snapshot.exists) {
-        print("User document does not exist.");
-        return;
-      }
-
-      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-      Map<String, dynamic> triplogs = Map<String, dynamic>.from(
-        data['triplogs'] ?? {},
-      );
-      List<dynamic> todaysTrips = List.from(triplogs[date] ?? []);
-
-      if (index < 0 || index >= todaysTrips.length) {
-        print("Invalid index: $index");
-        return;
-      }
-
-      // Remove the trip at the given index
-      todaysTrips.removeAt(index);
-
-      // Update the document
-      await userDocRef.update({'triplogs.$date': todaysTrips});
-
-      getUserData();
-      print("Trip at index $index deleted for $date.");
-    } catch (e) {
-      print("Error deleting trip: $e");
-    }
   }
 
   @override
@@ -875,18 +856,18 @@ class _MyHomePageState extends State<MyHomePage> {
         toolbarHeight: 100,
         scrolledUnderElevation: 0,
         actions: [
-          // Padding(
-          //   padding: const EdgeInsets.only(right: 22),
-          //   child: GestureDetector(
-          //     child: Icon(
-          //       Icons.share_location,
-          //       color: CupertinoColors.activeBlue,
-          //     ),
-          //     onTap: (){
-          //       Navigator.pushNamed(context, "/quick_locations");
-          //     },
-          //   ),
-          // ),
+          Padding(
+            padding: const EdgeInsets.only(right: 22),
+            child: GestureDetector(
+              child: Icon(
+                Icons.share_location,
+                color: CupertinoColors.activeBlue,
+              ),
+              onTap: (){
+                Navigator.pushNamed(context, "/quick_locations");
+              },
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 22.0),
             child: GestureDetector(
@@ -1043,7 +1024,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     "2-Wheeler"
                                                 ? "Assets/bg_icon.png"
                                                 : "Assets/bg_icon2.png",
-                                        onSlideFunction: (context) {
+                                        onSlideFunction: (context) async {
                                           showDeleteTripLogDialog(index);
                                         },
                                       )

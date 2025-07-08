@@ -261,6 +261,70 @@ class _HistoryPageState extends State<HistoryPage> {
     return null;
   }
 
+  void showDeleteTripLogDialog(int index, String date) {
+    bool deleteLoading = false;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SimpleAlertDialog(
+              title: 'Delete Trip log',
+              content: deleteLoading
+                  ? SizedBox(
+                height: 50,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: CupertinoColors.activeBlue,
+                    backgroundColor: Colors.lightBlueAccent,
+                  ),
+                ),
+              )
+                  : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.delete,
+                    size: 40,
+                    color: CupertinoColors.destructiveRed,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Are you sure to permanently delete this trip log?",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+              onConfirmButtonPressed: () async {
+                setState(() {
+                  deleteLoading = true;
+                });
+                try {
+                  await CommonFunctions().deleteTripLog(
+                    index,
+                    date
+                  );
+                  getUserData();
+                  Navigator.pop(context); // Close dialog after delete
+                } catch (e) {
+                  print("$e Something went wrong!");
+                } finally {
+                  setState(() {
+                    deleteLoading = false;
+                  });
+
+                }
+              },
+              confirmBtnText: 'Delete',
+              confirmBtnState: deleteLoading,
+            );
+          },
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     List<String> datesToShow = customSelectedDates.isNotEmpty
@@ -611,9 +675,12 @@ class _HistoryPageState extends State<HistoryPage> {
                                         : "Assets/bg_icon2.png",
                                     startLat: trip["start"]['latitude'],
                                     startLng: trip['start']['longitude'],
-                                    endLat: trip['end']['latitude'],
-                                    endLng: trip['end']['longitude'],
+                                    endLat: trip['end']?['latitude'] ?? 0,
+                                    endLng: trip['end']?['longitude'] ?? 0,
                                     routeData: trip['route'],
+                                    onSlideFunction: (context)async{
+                                      showDeleteTripLogDialog(tripIndex, date,);
+                                    },
                                   )
                                       .animate()
                                       .fade(duration: 400.ms)
