@@ -499,14 +499,17 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           ),
         ],
-        title: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: const Text(
-            "Recent",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: const Text(
+              "Recent",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ),
         ),

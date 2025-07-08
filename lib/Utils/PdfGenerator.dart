@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
+// import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -20,7 +21,7 @@ Future<void> generateTripPdfReport(
 ) async {
   final pdf = pw.Document();
 
-  void showSuccessDialog(String text, String filepath) {
+  void showSuccessDialog(BuildContext context,String text, String filepath) {
     showDialog(
       context: context,
       builder: (context) {
@@ -39,9 +40,9 @@ Future<void> generateTripPdfReport(
               Text(text),
             ],
           ),
-          onConfirmButtonPressed: () {
+          onConfirmButtonPressed: () async {
             Navigator.pop(context);
-            OpenFile.open(filepath); // <-- Opens the file
+            await OpenFilex.open(filepath); // Await the result for debugging if needed
           },
           confirmBtnText: "Open",
         );
@@ -447,7 +448,7 @@ Future<void> generateTripPdfReport(
     //     print('❌ Error saving PDF: $e');
     //   }
     // }
-    if ( int.parse(version) <= 10) {
+    if (int.parse(version) <= 10) {
       try {
         final directory = await getTemporaryDirectory();
         final filePath = '${directory.path}/TripReport.pdf';
@@ -473,15 +474,26 @@ Future<void> generateTripPdfReport(
         final file = File('${downloadsDir.path}/TripReport.pdf');
         await file.writeAsBytes(await pdf.save());
         print('✅ PDF saved to : ${file.path}');
-        showSuccessDialog("PDF downloaded at $file", file.path);
+        showSuccessDialog(context,"PDF downloaded at $file", file.path);
       } else {
         print('❌ Storage permission denied.');
       }
     }
-  } else if (Platform.isIOS) {
-    final output = await getApplicationDocumentsDirectory();
-    final file = File("${output.path}/TripReport.pdf");
-    await file.writeAsBytes(await pdf.save());
-    print('✅ PDF saved to: ${file.path}');
+  }
+  else if (Platform.isIOS) {
+    try {
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/TripReport.pdf';
+      final file = File(filePath);
+      await file.writeAsBytes(await pdf.save());
+
+      final xFile = XFile(filePath);
+      await Share.shareXFiles([xFile]);
+
+      print('✅ PDF shared from : ${file.path}');
+      showSuccessDialog(context,"PDF ready to share from ${file.path}", file.path);
+    } catch (e) {
+      print('❌ Error sharing PDF on iOS: $e');
+    }
   }
 }
