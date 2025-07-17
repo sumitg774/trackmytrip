@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:trip_tracker_app/Pages/HistoryPage.dart';
 import 'package:trip_tracker_app/Pages/home_page.dart';
 
 import '../Pages/MyHomePage.dart';
+import '../ViewModels/HomeViewModel.dart';
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key});

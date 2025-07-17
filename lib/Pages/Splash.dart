@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../PageComponents/BottomNavBar.dart';
 import '../Utils/AppColorTheme.dart';
 import '../Utils/StorageKeys.dart';
 import '../Utils/StorageService.dart';
+import '../ViewModels/HomeViewModel.dart';
 import 'LoginPage.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -52,6 +54,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = Provider.of<HomeViewModel>(context);
+
+
     return Scaffold(
       backgroundColor: AppColors.customBgPrimary,
       body: Center(

@@ -1,32 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:latlong2/latlong.dart' as gmaps;
-import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Buttons.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
-import 'package:trip_tracker_app/Utils/CommonFunctions.dart';
-import 'package:trip_tracker_app/Utils/StorageService.dart';
-import 'package:uuid/uuid.dart';
-
-import '../Utils/BackgroundService.dart';
-import 'LoginPage.dart';
-
+import '../ViewModels/HomeViewModel.dart';
 import '../Components/TextFields.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -37,83 +22,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late bool isSquareButtonEnabled;
-  Map<String, dynamic>? userData;
-  bool isLoading = true;
-  String? selectedLocation;
-  String? selectedVehicle;
-  late List<dynamic> TodaysTripLogs = [];
-  TextEditingController OtherLocation = TextEditingController();
-  TextEditingController DestinationLocation = TextEditingController();
-  TextEditingController DescriptionText = TextEditingController();
-  double? total_distance;
-  double? total_expenditure;
+
   String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
-  bool checked = false;
 
   @override
   void initState() {
     super.initState();
-    getUserData();
+    Future.microtask(
+      () => Provider.of<HomeViewModel>(context, listen: false).loadUserData(),
+    );
   }
 
-  void getUserData() async {
-    userData = await CommonFunctions().getLoggedInUserInfo();
-    final triplogsMap = userData?['triplogs'] as Map<String, dynamic>?;
-    final todayKey = DateFormat(
-      'dd-MM-yyyy',
-    ).format(DateTime.now()); // import intl
-    TodaysTripLogs = await triplogsMap?[todayKey] ?? [];
-    print('LISTLIST: $TodaysTripLogs');
-    isSquareButtonEnabled = await userData?['is_trip_started'];
-    print("ENABLED BTN $isSquareButtonEnabled");
-    setState(() {
-      isLoading = false;
-    });
-    calculateTodaysTotalDistance();
-    calculateTodaysTotalExpenditure();
-
-    print(":::: $userData");
-  }
-
-  void calculateTodaysTotalDistance() {
-    double total_distance2 = 0.0;
-
-    TodaysTripLogs.forEach((log) {
-      final distanceStr = log['distance']?.toString();
-      final distance = double.tryParse(distanceStr ?? '') ?? 0.0;
-      print("_________$distance");
-      total_distance2 += distance;
-    });
-
-    setState(() {
-      total_distance = total_distance2;
-    });
-
-    // print(":::TOTAL DISTANCE: ${total_distance.toStringAsFixed(2)}");
-  }
-
-  void calculateTodaysTotalExpenditure() {
-    double total_expenditure2 = 0.0;
-
-    TodaysTripLogs.forEach((log) {
-      final travelCostRaw = log['travel_cost'];
-      final travelCostStr = travelCostRaw?.toString() ?? '0.0';
-      final expenditure = double.tryParse(travelCostStr);
-
-      print("_________$expenditure");
-
-      if (expenditure != null) {
-        total_expenditure2 += expenditure;
-      }
-    });
-
-    setState(() {
-      total_expenditure = total_expenditure2;
-    });
-  }
-
-  void showSignOutAlertDialog() {
+  void showSignOutAlertDialog(HomeViewModel viewmodel) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -139,7 +59,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           onConfirmButtonPressed: () {
-            SignOut();
+            Navigator.pop(context);
+            viewmodel.signOut(context);
           },
           confirmBtnText: "Logout",
         );
@@ -147,19 +68,16 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void showStartTripAlertDialog() {
+  void showStartTripAlertDialog(HomeViewModel viewmodel) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (
-            BuildContext context,
-            void Function(void Function()) setState,
-          ) {
+        return Consumer<HomeViewModel>(
+          builder: (context, viewModel, _) {
             return SimpleAlertDialog(
               title: "Start Trip",
               content:
-                  isLoading
+                  viewmodel.isStartTripLoading
                       ? SizedBox(
                         height: 50,
                         child: Center(
@@ -174,100 +92,39 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           CustomDropdown<String>(
                             hint: "Select Your Vehicle",
-                            value: selectedVehicle,
+                            value: viewmodel.selectedVehicle,
                             items: ["2-Wheeler", "4-Wheeler"],
                             onChanged: (vehicle) {
-                              setState(() {
-                                selectedVehicle = vehicle;
-                              });
+                                viewmodel.selectedVehicle = vehicle;
+                                viewmodel.notifyListeners();
                             },
                           ),
                           const SizedBox(height: 18),
                           CustomDropdown<String>(
                             hint: "Select Start Location",
-                            value: selectedLocation,
+                            value: viewmodel.selectedLocation,
                             items: ["Home", "Kibbcom Office", "Other"],
-                            checked: checked,
+                            checked: viewmodel.isStartLocationChecked,
                             onChanged: (val) async {
-                              setState(() {
-                                selectedLocation = val;
-                                isLoading = true;
-                              });
-
-                              Map<String, LatLng> locationCoordinates = {
-                                "Home": LatLng(12.9715987, 77.594566),
-                                "Kibbcom Office": LatLng(12.955343, 77.714901),
-                              };
-
-                              if (val != "Other") {
-                                LatLng? target = locationCoordinates[val!];
-                                if (target == null) return;
-
-                                final status =
-                                    await Permission.location.request();
-                                if (status.isDenied) {
-                                  Permission.location.request();
-                                }
-                                if (status.isGranted) {
-                                  Position currentLocation =
-                                      await Geolocator.getCurrentPosition();
-                                  double distancedifference =
-                                      Geolocator.distanceBetween(
-                                        currentLocation.latitude,
-                                        currentLocation.longitude,
-                                        target.latitude,
-                                        target.longitude,
-                                      );
-
-                                  if (distancedifference < 100) {
-                                    setState(() {
-                                      checked = true;
-                                    });
-                                  } else {
-                                    setState(() {
-                                      checked = false;
-                                    });
-                                  }
-                                }
-                              } else {
-                                setState(() {
-                                  checked = true;
-                                });
-                              }
-                              isLoading = false;
+                                viewmodel.verifyStartLocation(val);
+                                viewmodel.notifyListeners();
                             },
                           ),
                           const SizedBox(height: 18),
-                          selectedLocation == "Other"
+                          viewmodel.selectedLocation == "Other"
                               ? CustomTextField(
                                 hintText: "Enter Other Location",
-                                controller: OtherLocation,
+                                controller: viewmodel.OtherLocation,
                               )
                               : const SizedBox(height: 0),
                         ],
                       ),
               onConfirmButtonPressed: () async {
-                setState(() {
-                  isLoading = true;
-                });
-
-                try {
-                  await startTrip();
-                  setEnabledStatus(true);
-                  print("SELECTED LOC :: $selectedLocation");
-                  getUserData();
-                  Navigator.pop(context);
-                } catch (e) {
-                  print("$e Something went wrong!");
-                } finally {
-                  setState(() {
-                    isLoading = false;
-                    print("this is getting called");
-                  });
-                }
+                viewmodel.handleStartTrip(context);
               },
               confirmBtnText: "Start",
-              confirmBtnState: !checked || isLoading,
+              confirmBtnState: !viewmodel.isStartLocationChecked ||
+                  viewmodel.isStartTripLoading,
             );
           },
         );
@@ -275,40 +132,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void showEndTripAlertDialog() {
-    bool endTripLoading = false;
-    bool contentFilled = false;
+  void showEndTripAlertDialog(HomeViewModel viewmodel) {
+    viewmodel.listenToEndTripContentFields();
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            DestinationLocation.addListener(() {
-              final filled =
-                  DestinationLocation.text.isNotEmpty &&
-                  DescriptionText.text.isNotEmpty;
-              if (filled != contentFilled) {
-                setDialogState(() {
-                  contentFilled = filled;
-                });
-              }
-            });
-
-            DescriptionText.addListener(() {
-              final filled =
-                  DestinationLocation.text.isNotEmpty &&
-                  DescriptionText.text.isNotEmpty;
-              if (filled != contentFilled) {
-                setDialogState(() {
-                  contentFilled = filled;
-                });
-              }
-            });
-
+        return Consumer<HomeViewModel>(
+          builder: (context, viewModel, _) {
             return SimpleAlertDialog(
               title: "End Trip",
               content:
-                  endTripLoading
+                  viewmodel.isEndTripLoading
                       ? SizedBox(
                         height: 50,
                         child: Center(
@@ -323,182 +157,26 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           CustomTextField(
                             hintText: "Enter Destination",
-                            controller: DestinationLocation,
+                            controller: viewmodel.DestinationLocation,
                           ),
                           const SizedBox(height: 18),
                           DescriptionTextField(
                             hintText: "Description",
-                            controller: DescriptionText,
+                            controller: viewmodel.DescriptionText,
                           ),
                         ],
                       ),
               onConfirmButtonPressed: () async {
-                setDialogState(() {
-                  endTripLoading = true;
-                });
-
-                try {
-                  await endTrip();
-                  setEnabledStatus(false);
-                  getUserData();
-                  Navigator.pop(context);
-                } catch (e) {
-                  print("$e Something went wrong!");
-                } finally {
-                  setDialogState(() {
-                    endTripLoading = false;
-                  });
-                }
+                await viewmodel.endTrip(context);
               },
               confirmBtnText: "Save",
-              confirmBtnState: endTripLoading || !contentFilled,
+              confirmBtnState: viewmodel.isEndTripLoading || !viewmodel.isEndTripContentFilled,
             );
           },
         );
       },
     );
   }
-
-  String getGreetingMessage() {
-    final hour = DateTime.now().hour;
-
-    if (hour >= 5 && hour < 12) {
-      return 'Good Morning!';
-    } else if (hour >= 12 && hour < 17) {
-      return 'Good Afternoon!';
-    } else {
-      return 'Good Evening!';
-    }
-  }
-
-  void SignOut() {
-    FirebaseAuth.instance.signOut();
-    StorageService.instance.clearAll();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-      (route) => false,
-    );
-  }
-
-
-
-  Future<void> startTrip() async {
-    // routeCoordinates.clear();
-    final Uuid _uuid = Uuid();
-
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          print("Location Permissions are denied!");
-          return;
-        }
-      }
-      if (permission == LocationPermission.whileInUse){
-          permission = await Geolocator.requestPermission();
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      final double startlatitude = position.latitude;
-      final double startlongitude = position.longitude;
-      final String starttimestamp = DateFormat.Hm().format(DateTime.now());
-      final String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
-      final String? from =
-          selectedLocation == 'Other' ? OtherLocation.text : selectedLocation;
-      final String tripId = _uuid.v4();
-      final String? vehicle = selectedVehicle;
-
-      String? collectionName =
-          await StorageService.instance.getCollectionName();
-      String? uid = FirebaseAuth.instance.currentUser?.uid;
-
-      final userDocRef = FirebaseFirestore.instance
-          .collection(collectionName!)
-          .doc(uid);
-
-      final Map<String, dynamic> TripLog = {
-        "tripId": tripId,
-        "from": from,
-        "to": "~",
-        "depart": starttimestamp,
-        "start": {"latitude": startlatitude, "longitude": startlongitude},
-        "vehicle": vehicle,
-        "route": [], // This will hold tracked route
-      };
-
-      await userDocRef.set({
-        'triplogs': {
-          date: FieldValue.arrayUnion([TripLog]),
-        },
-        'is_trip_started': true,
-      }, SetOptions(merge: true));
-
-      print("Firebase Updated Successfully");
-
-
-      await FlutterBackgroundService().startService();
-      print("✅ Background service start requested");
-      final isRunning = await FlutterBackgroundService().isRunning();
-      print("📡 Background service running? $isRunning");
-
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('trip_id', tripId);
-      await prefs.setString('uid', uid!);
-      await prefs.setString('collection', collectionName!);
-
-
-      // ✅ Start foreground tracking too
-      CommonFunctions().trackLocationAndUpdateFirebase(tripId, userDocRef, date);
-
-      // Start continuous tracking
-      /*positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.best,
-          distanceFilter: 7,
-        ),
-      ).listen((Position pos) async {
-        LatLng current = LatLng(pos.latitude, pos.longitude);
-        routeCoordinates.add(current);
-
-        // Create a route list of maps
-        final List<Map<String, dynamic>> routeList =
-            routeCoordinates
-                .map(
-                  (coord) => {
-                    'latitude': coord.latitude,
-                    'longitude': coord.longitude,
-                  },
-                )
-                .toList();
-
-        // 👇 Update the specific trip log with route in Firebase
-        DocumentSnapshot snapshot = await userDocRef.get();
-        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        List<dynamic> todaysTrips = List.from(data['triplogs'][date] ?? []);
-
-        // Find and update the specific trip by tripId
-        for (int i = 0; i < todaysTrips.length; i++) {
-          if (todaysTrips[i]['tripId'] == tripId) {
-            todaysTrips[i]['route'] = routeList;
-            break;
-          }
-        }
-
-        await userDocRef.update({'triplogs.$date': todaysTrips});
-
-        print("Route updated: ${current.latitude}, ${current.longitude}");
-      });*/
-    } catch (e) {
-      print("An Error Occurred: $e");
-    }
-  }
-
 
   Future<double?> getRouteDistanceFromORS({
     required double startLat,
@@ -558,149 +236,6 @@ class _MyHomePageState extends State<MyHomePage> {
       print("ORS Exception: $e");
     }
     return null;
-  }
-
-  Future<void> stopTrip() async {
-    // await positionStream?.cancel();
-    await CommonFunctions.positionStream?.cancel();
-    print("Stream Stopped!");
-    CommonFunctions.positionStream = null;
-
-    FlutterBackgroundService().invoke("stopService");
-    await Future.delayed(Duration(seconds: 1));
-
-    print("Tracking stopped");
-  }
-
-  Future<void> endTrip() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          print("Location Permissions are denied!");
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      final double endlatitude = position.latitude;
-      final double endlongitude = position.longitude;
-      final String endtimestamp = DateFormat.Hm().format(DateTime.now());
-      final String date = DateFormat('dd-MM-yyyy').format(DateTime.now());
-      final String to = DestinationLocation.text;
-      final String desc = DescriptionText.text;
-
-      String? collectionName =
-          await StorageService.instance.getCollectionName();
-      String? uid = FirebaseAuth.instance.currentUser?.uid;
-      if (collectionName == null || uid == null) {
-        print("Collection name or UID is null.");
-        return;
-      }
-
-      final userDocRef = FirebaseFirestore.instance
-          .collection(collectionName)
-          .doc(uid);
-
-      Map<String, dynamic> userData =
-          await CommonFunctions().getLoggedInUserInfo() ?? {};
-      Map<String, dynamic> triplogs = Map<String, dynamic>.from(
-        userData['triplogs'] ?? {},
-      );
-      List<dynamic> tripsForToday = List.from(triplogs[date] ?? []);
-
-      int indexToUpdate = tripsForToday.lastIndexWhere(
-        (trip) => trip['to'] == "~",
-      );
-
-      if (indexToUpdate == -1) {
-        print("No ongoing trip found with 'to': ~");
-        return;
-      }
-
-      double startlatitude = tripsForToday[indexToUpdate]['start']['latitude'];
-      double startlongitude = tripsForToday[indexToUpdate]['start']['longitude'];
-      List<dynamic> rawRoute = tripsForToday[indexToUpdate]['route'] ?? [];
-      List<LatLng> routeList = rawRoute
-          .map((e) => LatLng(e['latitude'] as double, e['longitude'] as double))
-          .toList();      print('Route List: $routeList');
-
-      print("LAT AND LONGS REQ ::: $startlatitude, $startlongitude");
-
-      await stopTrip();
-      print("✅ Background & foreground tracking stopped, proceeding with end trip logic...");
-
-      double totalDistance = 0.0;
-
-      for (int i = 0; i < routeList.length - 1; i++) {
-        totalDistance += Geolocator.distanceBetween(
-          routeList[i].latitude,
-          routeList[i].longitude,
-          routeList[i + 1].latitude,
-          routeList[i + 1].longitude,
-        );
-      }
-
-      print("Total distance traveled: ${totalDistance / 1000} km");
-
-      double companyTravelAllowance =
-          tripsForToday[indexToUpdate]['vehicle'] == "2-Wheeler" ? 5 : 8;
-
-      final Map<String, dynamic> endData = {
-        "to": to,
-        "arrive": endtimestamp,
-        "end": {"latitude": endlatitude, "longitude": endlongitude},
-        "desc": desc,
-        "distance": (totalDistance / 1000).toStringAsFixed(2),
-        "travel_cost": ((totalDistance / 1000) * companyTravelAllowance)
-            .toStringAsFixed(2),
-      };
-
-      Map<String, dynamic> existingTrip = Map<String, dynamic>.from(
-        tripsForToday[indexToUpdate],
-      );
-      existingTrip.addAll(endData);
-
-      tripsForToday[indexToUpdate] = existingTrip;
-
-      await userDocRef.set({
-        'triplogs': {date: tripsForToday},
-      }, SetOptions(merge: true));
-
-      // routeCoordinates.clear();
-      print("route Co-ordinates updated and cleared.");
-      print("Trip ended and Firebase updated successfully.");
-    } catch (e) {
-      print("An error occurred: $e");
-    }
-  }
-
-  void setEnabledStatus(bool val) async {
-    try {
-      String? collectionName =
-          await StorageService.instance.getCollectionName();
-      String? uid = FirebaseAuth.instance.currentUser?.uid;
-
-      if (uid != null && collectionName != null) {
-        await FirebaseFirestore.instance
-            .collection(collectionName)
-            .doc(uid)
-            .update({'is_trip_started': val});
-
-        print("Updated 'is_trip_started' to $val in Firebase");
-      } else {
-        print("Error: uid or collection name is null");
-      }
-    } catch (e) {
-      print("Failed to update 'is_trip_started': $e");
-    }
-    setState(() {
-      isSquareButtonEnabled = val;
-    });
   }
 
   void showTripStartedBanner(BuildContext context) {
@@ -763,62 +298,45 @@ class _MyHomePageState extends State<MyHomePage> {
     Future.delayed(Duration(seconds: 3), () => entry.remove());
   }
 
-  void showDeleteTripLogDialog(int index) {
-    bool deleteLoading = false;
+  void showDeleteTripLogDialog(int index, HomeViewModel viewmodel) {
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
+        return Consumer<HomeViewModel>(
+          builder: (context, viewModel ,_) {
             return SimpleAlertDialog(
               title: 'Delete Trip log',
-              content: deleteLoading
-                  ? SizedBox(
-                height: 50,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: CupertinoColors.activeBlue,
-                    backgroundColor: Colors.lightBlueAccent,
-                  ),
-                ),
-              )
-                  : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.delete,
-                    size: 40,
-                    color: CupertinoColors.destructiveRed,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    "Are you sure to permanently delete this trip log?",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
+              content:
+                  viewmodel.isDeletingTriplog
+                      ? SizedBox(
+                        height: 50,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: CupertinoColors.activeBlue,
+                            backgroundColor: Colors.lightBlueAccent,
+                          ),
+                        ),
+                      )
+                      : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.delete,
+                            size: 40,
+                            color: CupertinoColors.destructiveRed,
+                          ),
+                          SizedBox(height: 20),
+                          Text(
+                            "Are you sure to permanently delete this trip log?",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
               onConfirmButtonPressed: () async {
-                setState(() {
-                  deleteLoading = true;
-                });
-                try {
-                  await CommonFunctions().deleteTripLog(
-                      index,
-                      DateFormat('dd-MM-yyyy').format(DateTime.now()),
-                );
-                  getUserData();
-                  Navigator.pop(context); // Close dialog after delete
-                } catch (e) {
-                  print("$e Something went wrong!");
-                } finally {
-                  setState(() {
-                    deleteLoading = false;
-                  });
-
-                }
+                viewmodel.deleteTripLog(index, context);
               },
               confirmBtnText: 'Delete',
-              confirmBtnState: deleteLoading,
+              confirmBtnState: viewmodel.isDeletingTriplog,
             );
           },
         );
@@ -828,7 +346,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading || userData == null) {
+    final viewModel = Provider.of<HomeViewModel>(context);
+
+    if (viewModel.isLoading) {
       return const Scaffold(
         backgroundColor: CupertinoColors.white,
         body: Center(
@@ -842,11 +362,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       floatingActionButton:
-          isSquareButtonEnabled
-              ? TripStartedContainer()
+          viewModel.isSquareButtonEnabled
+              ? GestureDetector(
+            onTap: (){ Navigator.pushNamed(context, "/quick_locations");},
+              child: TripStartedContainer())
               : TransparentFab(
-                expenditure: total_expenditure?.toStringAsFixed(2) ?? "0.0",
-                kms: total_distance?.toStringAsFixed(2) ?? "0.0",
+                expenditure:
+                    viewModel.totalExpenditure.toStringAsFixed(2) ?? "0.0",
+                kms: viewModel.totalDistance.toStringAsFixed(2) ?? "0.0",
                 text1: "Today's Expenditure",
                 text2: "Today's Distance",
               ),
@@ -863,7 +386,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Icons.share_location,
                 color: CupertinoColors.activeBlue,
               ),
-              onTap: (){
+              onTap: () {
                 Navigator.pushNamed(context, "/quick_locations");
               },
             ),
@@ -876,7 +399,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 color: CupertinoColors.destructiveRed,
               ),
               onTap: () {
-                showSignOutAlertDialog();
+                showSignOutAlertDialog(viewModel);
               },
             ),
           ),
@@ -905,11 +428,12 @@ class _MyHomePageState extends State<MyHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                getGreetingMessage(),
+                viewModel.getGreetingMessage(),
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               Text(
-                userData?['name'] ?? '',
+                // userData?['name'] ?? '',
+                viewModel.user?.name ?? '',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -935,20 +459,20 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     SquareIconButton(
                       onPressed: () {
-                        showStartTripAlertDialog();
+                        showStartTripAlertDialog(viewModel);
                       },
                       icon: Icons.play_arrow_rounded,
                       label: 'Start Trip',
-                      isEnabled: !isSquareButtonEnabled,
+                      isEnabled: !viewModel.isSquareButtonEnabled,
                       color: CupertinoColors.systemBlue,
                     ),
                     SquareIconButton(
                       onPressed: () {
-                        showEndTripAlertDialog();
+                        showEndTripAlertDialog(viewModel);
                       },
                       icon: Icons.stop_rounded,
                       label: 'End Trip',
-                      isEnabled: isSquareButtonEnabled,
+                      isEnabled: viewModel.isSquareButtonEnabled,
                       color: CupertinoColors.systemRed,
                     ),
                   ],
@@ -957,7 +481,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SimpleContainer(
                   title: "Today's Trip Logs",
                   child:
-                      TodaysTripLogs.isEmpty
+                  viewModel.todaysTriplogs.isEmpty
                           ? Center(
                             child: Padding(
                                   padding: const EdgeInsets.only(top: 66.0),
@@ -987,38 +511,25 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               ListView.builder(
-                                itemCount: TodaysTripLogs.length,
+                                itemCount: viewModel.todaysTriplogs.length,
                                 shrinkWrap: true,
                                 physics: NeverScrollableScrollPhysics(),
                                 itemBuilder: (context, index) {
+                                  final trip = viewModel.todaysTriplogs[index];
                                   return TripSummaryCard(
-                                        from:
-                                            TodaysTripLogs[index]['from'] ??
-                                            "~",
-                                        to: TodaysTripLogs[index]['to'] ?? "~",
-                                        departureTime:
-                                            TodaysTripLogs[index]['depart'] ??
-                                            "~",
-                                        arrivalTime:
-                                            TodaysTripLogs[index]['arrive'] ??
-                                            "~",
-                                        distance:
-                                            TodaysTripLogs[index]['distance'] ??
-                                            "~",
-                                        expense:
-                                            TodaysTripLogs[index]['travel_cost'] ??
-                                            "~",
-                                        riding:
-                                            TodaysTripLogs[index]['to'] == "~"
-                                                ? true
-                                                : false,
+                                        from: trip.from ?? "~",
+                                        to: trip.to ?? "~",
+                                        departureTime: trip.depart ?? "~",
+                                        arrivalTime: trip.arrive ?? "~",
+                                        distance: trip.distance ?? "~",
+                                        expense: trip.travelCost ?? "~",
+                                        riding: trip.to == "~" ? true : false,
                                         assetImage:
-                                            TodaysTripLogs[index]['vehicle'] ==
-                                                    "2-Wheeler"
+                                            trip.vehicle == "2-Wheeler"
                                                 ? "Assets/bg_icon.png"
                                                 : "Assets/bg_icon2.png",
                                         onSlideFunction: (context) async {
-                                          showDeleteTripLogDialog(index);
+                                          showDeleteTripLogDialog(index, viewModel);
                                         },
                                       )
                                       .animate()

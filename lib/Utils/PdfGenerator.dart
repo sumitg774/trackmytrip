@@ -353,29 +353,32 @@ Future<void> generateTripPdfReport(
             pw.SizedBox(height: 8),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey600),
-              columnWidths: {
-                for (var i = 0; i < headers.length; i++)
-                  i: const pw.FlexColumnWidth(),
-              },
+              // columnWidths: {
+              //   for (var i = 0; i < headers.length; i++)
+              //     i: const pw.FlexColumnWidth(),
+              // },
               children: [
                 // Header
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: PdfColors.blueGrey900),
-                  children:
-                      headers.map((header) {
-                        return pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text(
-                            header,
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.white,
-                              fontSize: 12,
-                            ),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        );
-                      }).toList(),
+                  children: headers.map((header) {
+                    // Estimate width based on character count (adjust multiplier as needed)
+                    final estimatedWidth = header.length * 10.0;
+
+                    return pw.Container(
+                      width: estimatedWidth,
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        header,
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                          fontSize: 10,
+                        ),
+                        textAlign: pw.TextAlign.start,
+                      ),
+                    );
+                  }).toList(),
                 ),
 
                 // Data rows
@@ -415,7 +418,7 @@ Future<void> generateTripPdfReport(
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           color: PdfColors.blueGrey800,
-                          fontSize: 11,
+                          fontSize: 10,
                         ),
                       ),
                     );

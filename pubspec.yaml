@@ -35,7 +35,7 @@ dependencies:
   cloud_firestore: ^4.17.0
   geolocator: ^12.0.0
   google_maps_flutter: ^2.6.0
-  provider: ^6.1.2
+  provider: ^6.1.5
   intl: ^0.19.0
   pdf: ^3.11.3
 #  printing: ^5.13.1
@@ -91,6 +91,8 @@ flutter:
      - Assets/splash_image.png
      - Assets/bg_icon.png
      - Assets/bg_icon2.png
+     - Assets/bike_top_view.png
+     - Assets/car_top_view.png
 
 flutter_native_splash:
   color: "#ffffff"

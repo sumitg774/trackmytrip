@@ -18,6 +18,7 @@ class OngoingTripMapScreen extends StatefulWidget {
 class _OngoingTripMapScreenState extends State<OngoingTripMapScreen> {
   String? collectionName;
   String? uid;
+  String? vehicle;
 
   @override
   void initState() {
@@ -30,11 +31,16 @@ class _OngoingTripMapScreenState extends State<OngoingTripMapScreen> {
   {
     uid = FirebaseAuth.instance.currentUser!.uid;
     collectionName = await StorageService.instance.getCollectionName();
+    setState(() {
+
+    });
+    print(collectionName);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: CupertinoColors.white,
       appBar: AppBar(
         toolbarHeight: 80,
         scrolledUnderElevation: 0,
@@ -51,8 +57,14 @@ class _OngoingTripMapScreenState extends State<OngoingTripMapScreen> {
           ),
         ),
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('gmail.com_user').doc(uid).snapshots(),
+      body: collectionName == null ? Center(
+        child: CircularProgressIndicator(
+          color: CupertinoColors.activeBlue,
+          backgroundColor: Colors.lightBlueAccent,
+        ),
+      ) :
+        StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection(collectionName!).doc(uid).snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
@@ -77,6 +89,7 @@ class _OngoingTripMapScreenState extends State<OngoingTripMapScreen> {
             }
 
             final List<dynamic> route = todayTrips.last['route'];
+            vehicle = todayTrips.last['vehicle'];
             final polylinePoints = route.map<LatLng>((point) {
               return LatLng(point['latitude'], point['longitude']);
             }).toList();
@@ -93,8 +106,11 @@ class _OngoingTripMapScreenState extends State<OngoingTripMapScreen> {
               ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
+                  /*urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],*/
+
+                  urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                  subdomains: ['a', 'b', 'c', 'd'],
                 ),
                 if (currentLocation != null)
                   MarkerLayer(
@@ -103,7 +119,7 @@ class _OngoingTripMapScreenState extends State<OngoingTripMapScreen> {
                         point: currentLocation,
                         width: 40,
                         height: 40,
-                        child: const Icon(Icons.directions_bike, color: Colors.blue, size: 36),
+                        child: vehicle == "2-Wheeler" ? Image.asset('Assets/bike_top_view.png',): Image.asset('Assets/car_top_view.png',),
                       ),
                     ],
                   ),

@@ -8,9 +8,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:trip_tracker_app/Components/AlertDialogs.dart';
 import 'package:trip_tracker_app/Components/Cards.dart';
 import 'package:trip_tracker_app/Components/Containers.dart';
+import 'package:trip_tracker_app/ViewModels/HistoryViewModel.dart';
 import '../Components/Buttons.dart';
 import '../Components/HeatMapCalender.dart';
 import '../Components/TextFields.dart';
@@ -28,159 +30,91 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  TextEditingController singleDate = TextEditingController();
-  TextEditingController fromDate = TextEditingController();
-  TextEditingController toDate = TextEditingController();
-  Map<String, dynamic>? userData;
-  Map<String, dynamic> triplogs = {};
-  bool isLoading = true;
-  String? selectedDate;
-  String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
-  bool showSummary = false;
-  double total_expenditure = 0.0;
-  double total_distance = 0.0;
-  String? selectedVehicleFilter;
 
-  Map<DateTime, int?> dataforHeatMap = {};
-  String? selectedDate1;
-  List<String> customSelectedDates = [];
+  // Map<String, dynamic>? userData;
+  String API_KEY = "5b3ce3597851110001cf62480796a08341e447719309540c7e083620";
 
   @override
   void initState() {
     super.initState();
-    getUserData();
-    setShowSummary(false);
-    customSelectedDates = [];
-  }
-
-  void setShowSummary(bool value) {
-    setState(() {
-      showSummary = value;
-    });
-    final bool showCalender = true;
-  }
-
-  List<String> getLastFiveDates() {
-    return List.generate(5, (i) {
-      return DateFormat(
-        'dd-MM-yyyy',
-      ).format(DateTime.now().subtract(Duration(days: i)));
+    Future.microtask((){
+      Provider.of<HistoryViewModel>(context, listen: false).getUserData();
     });
   }
 
-  void getUserData() async {
-    Permission.manageExternalStorage.request();
-    userData = await CommonFunctions().getLoggedInUserInfo();
-    triplogs = Map<String, dynamic>.from(userData?['triplogs'] ?? {});
-    bool isSquareButtonEnabled = userData?['is_trip_started'] ?? false;
-    print("ENABLED BTN $isSquareButtonEnabled");
-
-    setState(() {
-      isLoading = false;
-    });
-
-    print(":::: $userData");
+  void setShowSummary(bool value, HistoryViewModel viewModel) {
+      viewModel.showSummary = value;
   }
 
-  Future<void> OpenSetDateDialog() async {
+  Future<void> OpenSetDateDialog(HistoryViewModel viewModel) async {
     final result = await showDialog<List<String>>(
       context: context,
       builder: (BuildContext context) {
-        bool isSingleDateMode = true;
         return StatefulBuilder(
-          builder: (BuildContext context, void Function(void Function()) setDialogState) {
+          builder: (context, setDialogState) {
             return SimpleAlertDialog(
-                title: "Date Selection",
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CustomSwitchContentButtons(
-                      firstWidget: Column(
-                        children: [
-                          DatePickerTextField(
-                            controller: singleDate,
-                            label: "Pick a Date",
-                            prefillToday: false,
-                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
-                            customBool: true,
-                          ),
-                          SizedBox(height: 30),
-                        ],
-                      ),
-                      secondWidget: Column(
-                        children: [
-                          DatePickerTextField(
-                            controller: fromDate,
-                            label: "From",
-                            prefillToday: false,
-                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
-                            customBool: true,
-                          ),
-                          SizedBox(height: 30),
-                          DatePickerTextField(
-                            controller: toDate,
-                            label: "To",
-                            prefillToday: false,
-                            trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
-                            customBool: true,
-                          ),
-                          SizedBox(height: 30),
-                        ],
-                      ),
-                      onToggle: (bool useSingleDate) {
-                        setDialogState(() {
-                          isSingleDateMode = useSingleDate;
-                          if (isSingleDateMode) {
-                            fromDate.clear();
-                            toDate.clear();
-                          } else {
-                            singleDate.clear();
-                          }
-                        });
-                      },
+              title: "Date Selection",
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomSwitchContentButtons(
+                    firstWidget: Column(
+                      children: [
+                        DatePickerTextField(
+                          controller: viewModel.singleDate,
+                          label: "Pick a Date",
+                          prefillToday: false,
+                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                          customBool: true,
+                        ),
+                        SizedBox(height: 30),
+                      ],
                     ),
-                  ],
-                ),
-                confirmBtnText: "Submit",
-                onConfirmButtonPressed: () {
-                  try {
-                    if (isSingleDateMode && singleDate.text.isNotEmpty) {
-                      final picked = DateFormat('dd-MM-yyyy').parseStrict(singleDate.text);
-                      final formatted = DateFormat('dd-MM-yyyy').format(picked);
-                      Navigator.of(context).pop([formatted]); // Return List<String> with one formatted date
-                    } else if (fromDate.text.isNotEmpty && toDate.text.isNotEmpty) {
-                      final start = DateFormat('dd-MM-yyyy').parseStrict(fromDate.text);
-                      final end = DateFormat('dd-MM-yyyy').parseStrict(toDate.text);
-
-                      if (start.isAfter(end)) {
-                        print("⚠️ Invalid date range: Start date is after end date.");
-                        return;
-                      }
-
-                      final rangeDates = List.generate(
-                        end.difference(start).inDays + 1,
-                            (i) => DateFormat('dd-MM-yyyy').format(start.add(Duration(days: i))),
-                      );
-
-                      Navigator.of(context).pop(rangeDates); // Return full range as List<String>
-                    } else {
-                      print("⚠️ Please select valid date(s).");
-                    }
-                  } catch (e) {
-                    print("❌ Error parsing date: $e");
-                  }
-                  setShowSummary(true);
+                    secondWidget: Column(
+                      children: [
+                        DatePickerTextField(
+                          controller: viewModel.fromDate,
+                          label: "From",
+                          prefillToday: false,
+                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                          customBool: true,
+                        ),
+                        SizedBox(height: 30),
+                        DatePickerTextField(
+                          controller: viewModel.toDate,
+                          label: "To",
+                          prefillToday: false,
+                          trialingIcon: Icon(Icons.calendar_month_rounded, color: CupertinoColors.activeBlue),
+                          customBool: true,
+                        ),
+                        SizedBox(height: 30),
+                      ],
+                    ),
+                    onToggle: (bool useSingleDate) {
+                      setDialogState(() {
+                        viewModel.toggleDateMode(useSingleDate);
+                      });
+                    },
+                  ),
+                ],
+              ),
+              confirmBtnText: "Submit",
+              onConfirmButtonPressed: () {
+                try {
+                  final dates = viewModel.getSelectedDates();
+                  Navigator.of(context).pop(dates);
+                } catch (e) {
+                  print("⚠️ Error selecting dates: $e");
                 }
+              },
             );
           },
         );
       },
     );
+
     if (result != null && result.isNotEmpty) {
-      setState(() {
-        customSelectedDates = result;
-        selectedDate = result.length == 1 ? result.first : "${result.first} to ${result.last}";
-      });
+      viewModel.updateSelectedDates(result);
     }
   }
 
@@ -261,16 +195,15 @@ class _HistoryPageState extends State<HistoryPage> {
     return null;
   }
 
-  void showDeleteTripLogDialog(int index, String date) {
-    bool deleteLoading = false;
+  void showDeleteTripLogDialog(int index, String date, HistoryViewModel viewModel) {
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
+        return Consumer<HistoryViewModel>(
+          builder: (context, viewModel, _) {
             return SimpleAlertDialog(
               title: 'Delete Trip log',
-              content: deleteLoading
+              content: viewModel.isDeletingTriplog
                   ? SizedBox(
                 height: 50,
                 child: Center(
@@ -296,27 +229,10 @@ class _HistoryPageState extends State<HistoryPage> {
                 ],
               ),
               onConfirmButtonPressed: () async {
-                setState(() {
-                  deleteLoading = true;
-                });
-                try {
-                  await CommonFunctions().deleteTripLog(
-                    index,
-                    date
-                  );
-                  getUserData();
-                  Navigator.pop(context); // Close dialog after delete
-                } catch (e) {
-                  print("$e Something went wrong!");
-                } finally {
-                  setState(() {
-                    deleteLoading = false;
-                  });
-
-                }
+                viewModel.deleteTripLog(index, date, context);
               },
               confirmBtnText: 'Delete',
-              confirmBtnState: deleteLoading,
+              confirmBtnState: viewModel.isDeletingTriplog,
             );
           },
         );
@@ -324,98 +240,15 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    List<String> datesToShow = customSelectedDates.isNotEmpty
-        ? customSelectedDates
-        : List.generate(5, (i) {
-      return DateFormat('dd-MM-yyyy')
-          .format(DateTime.now().subtract(Duration(days: i)));
-    });
+    final viewModel = Provider.of<HistoryViewModel>(context);
 
-    Map<String, dynamic> triplogs = Map<String, dynamic>.from(
-      userData?['triplogs'] ?? {},
-    );
-    bool noLogsAvailable = datesToShow.every((date) =>
-    triplogs[date] == null || (triplogs[date] as List).isEmpty);
-
-    // Populate heat map data
-    triplogs.forEach((dateStr, entries) {
-      if (entries != null && entries.isNotEmpty) {
-        final parts = dateStr.split('-');
-        final date = DateTime(
-          int.parse(parts[2]),
-          int.parse(parts[1]),
-          int.parse(parts[0]),
-        );
-        dataforHeatMap[date] = 1;
-      }
-    });
+    final datesToShow = viewModel.datesToShow;
+    final noLogsAvailable = viewModel.noLogsAvailable;
+    final heatMapData = viewModel.dataForHeatMap;
 
     print("Dates to show: $datesToShow");
-
-    void calculateTodaysTotalDistanceAndExpenditure() {
-      double totalExpenditure = 0.0;
-      double totalDistance = 0.0;
-
-      for (String date in datesToShow) {
-        List<dynamic> originalTrips = triplogs[date] ?? [];
-        List<dynamic> dayTrips = selectedVehicleFilter == null
-            ? originalTrips
-            : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
-
-        for (var trip in dayTrips) {
-          final expenditure = double.tryParse(trip['travel_cost'].toString());
-          final distance = double.tryParse(trip['distance'].toString());
-
-          if (expenditure != null && distance != null) {
-            totalExpenditure += expenditure;
-            totalDistance += distance;
-          }}
-
-      }
-
-      setState(() {
-        total_expenditure = totalExpenditure;
-        total_distance = totalDistance;
-      });
-
-      print("TOTAL:EXP = $total_expenditure");
-      print("TOTAL:DIST = $total_distance");
-    }
-
-    calculateTodaysTotalDistanceAndExpenditure();
-
-    List<Map<String, dynamic>> getFlatTripList() {
-      List<Map<String, dynamic>> allTrips = [];
-
-      for (String date in datesToShow) {
-        // List<dynamic> dayTrips = triplogs[date] ?? [];
-        // List<dynamic> dayTrips = triplogs[date] ?? [];
-        List<dynamic> originalTrips = triplogs[date] ?? [];
-        List<dynamic> dayTrips = selectedVehicleFilter == null
-            ? originalTrips
-            : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
-
-        for (var tripRaw in dayTrips) {
-          final trip = Map<String, dynamic>.from(tripRaw);
-
-          allTrips.add({
-            'Date': date,
-            'From': trip['from'] ?? '~',
-            'To': trip['to'] ?? '~',
-            'Departure': trip['depart'] ?? '~',
-            'Arrival': trip['arrive'] ?? '~',
-            'Distance (km)': double.parse(trip['distance']!.toString()) ?? '~',
-            'Expenditure (₹)':
-                double.parse(trip['travel_cost']!.toString()) ?? '~',
-            'Vehicle': trip['vehicle'] ?? '~',
-          });
-        }
-      }
-      return allTrips;
-    }
 
     return Scaffold(
       backgroundColor: CupertinoColors.white,
@@ -450,14 +283,14 @@ class _HistoryPageState extends State<HistoryPage> {
                     padding: const EdgeInsets.all(3.0),
                     child: IconButton(
                       onPressed: () async {
-                        final flatData = getFlatTripList();
+                        final flatData = viewModel.getFlatTripList();
                         await generateTripPdfReport(
                           flatData,
                           context,
-                          total_distance.toStringAsFixed(2),
-                          total_expenditure.toStringAsFixed(2),
-                          userData?['name'],
-                          userData?['emp_id']
+                          viewModel.totalDistance.toStringAsFixed(2),
+                          viewModel.totalExpenditure.toStringAsFixed(2),
+                          viewModel.user!.name,
+                          viewModel.user!.empId
                         );
                       },
                       icon: Icon(
@@ -471,10 +304,10 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
             ),
           ),
-          showSummary
+          viewModel.showSummary
               ? TransparentFab(
-                expenditure: total_expenditure.toStringAsFixed(2) ?? "0.0",
-                kms: total_distance.toStringAsFixed(2) ?? "0.0",
+                expenditure: viewModel.totalExpenditure.toStringAsFixed(2) ?? "0.0",
+                kms: viewModel.totalDistance.toStringAsFixed(2) ?? "0.0",
                 text1: "Total Expenditure",
                 text2: "Total Distance",
               )
@@ -482,7 +315,7 @@ class _HistoryPageState extends State<HistoryPage> {
         ],
       ),
       floatingActionButtonLocation:
-          showSummary
+          viewModel.showSummary
               ? FloatingActionButtonLocation.centerDocked
               : FloatingActionButtonLocation.endDocked,
       appBar: AppBar(
@@ -492,7 +325,7 @@ class _HistoryPageState extends State<HistoryPage> {
         actionsPadding: EdgeInsets.only(right: 22),
         actions: [
           IconButton(
-            onPressed: OpenSetDateDialog,
+            onPressed:(){OpenSetDateDialog(viewModel);},
             icon: const Icon(
               Icons.calendar_month_outlined,
               color: Colors.black87,
@@ -511,7 +344,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ),
       ),
-      body: isLoading
+      body: viewModel.isLoading
           ? Center(
         child: CircularProgressIndicator(
           color: CupertinoColors.activeBlue,
@@ -524,16 +357,14 @@ class _HistoryPageState extends State<HistoryPage> {
           child: Column(
             children: [
               HeatMapCalendarWidget(
-                dateTimeMap: dataforHeatMap,
+                dateTimeMap: heatMapData,
                 showCalender: true,
                 onDateSelected: (DateTime date, int count) {
                   String formattedDate =
                   DateFormat('dd-MM-yyyy').format(date);
-                  setState(() {
-                    customSelectedDates = [formattedDate];
-                    setShowSummary(true);
-                    // date1 =datesToShow as String;
-                  });
+                    viewModel.customSelectedDates = [formattedDate];
+                    viewModel.notifyListeners();
+                    setShowSummary(true, viewModel);
                 },
               ),
 
@@ -556,15 +387,14 @@ class _HistoryPageState extends State<HistoryPage> {
                     children: [
                       FilterButton(
                         onPressed: () {
-                          setState(() {
-                            selectedVehicleFilter = '2-Wheeler';
-                          });
+                            viewModel.selectedVehicleFilter = '2-Wheeler';
+                            viewModel.notifyListeners();
                         },
                         icon: Icons.two_wheeler,
-                        backgroundColor: selectedVehicleFilter == '2-Wheeler'
+                        backgroundColor: viewModel.selectedVehicleFilter == '2-Wheeler'
                             ? CupertinoColors.activeBlue
                             : CupertinoColors.systemGrey6,
-                        iconColor: selectedVehicleFilter == '2-Wheeler'
+                        iconColor: viewModel.selectedVehicleFilter == '2-Wheeler'
                             ? CupertinoColors.white
                             : CupertinoColors.activeBlue,
                       ),
@@ -572,15 +402,14 @@ class _HistoryPageState extends State<HistoryPage> {
                       FilterButton(
                         icon: Icons.directions_car_filled,
                         backgroundColor:
-                        selectedVehicleFilter == '4-Wheeler'
+                        viewModel.selectedVehicleFilter == '4-Wheeler'
                             ? CupertinoColors.activeBlue
                             : CupertinoColors.systemGrey6,
                         onPressed: () {
-                          setState(() {
-                            selectedVehicleFilter = '4-Wheeler';
-                          });
+                          viewModel.selectedVehicleFilter = '4-Wheeler';
+                          viewModel.notifyListeners();
                         },
-                        iconColor: selectedVehicleFilter == '4-Wheeler'
+                        iconColor: viewModel.selectedVehicleFilter == '4-Wheeler'
                             ? CupertinoColors.white
                             : CupertinoColors.activeBlue,
                       ),
@@ -588,17 +417,16 @@ class _HistoryPageState extends State<HistoryPage> {
                       FilterButton(
                         wantText: true,
                         BtnText: " All ",
-                        iconColor: selectedVehicleFilter == null
+                        iconColor: viewModel.selectedVehicleFilter == null
                             ? CupertinoColors.white
                             : CupertinoColors.activeBlue,
                         backgroundColor:
-                        selectedVehicleFilter == null
+                        viewModel.selectedVehicleFilter == null
                             ? CupertinoColors.activeBlue
                             : CupertinoColors.systemGrey6,
                         onPressed: () {
-                          setState(() {
-                            selectedVehicleFilter = null;
-                          });
+                          viewModel.selectedVehicleFilter = null;
+                          viewModel.notifyListeners();
                         },
                       ),
                       SizedBox(width:10),
@@ -611,7 +439,6 @@ class _HistoryPageState extends State<HistoryPage> {
               if (noLogsAvailable)
                 Padding(
                   padding: const EdgeInsets.only(top: 30),
-
                   child: Center(
                     child: Text(
                       "No logs to show!",
@@ -624,16 +451,16 @@ class _HistoryPageState extends State<HistoryPage> {
                 )
               else
                 ListView.builder(
-                  itemCount: datesToShow.length,
+                  itemCount: viewModel.datesToShow.length,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemBuilder: (context, dateIndex) {
-                    String date = datesToShow[dateIndex];
+                    String date = viewModel.datesToShow[dateIndex];
                     // List<dynamic> dayTrips = triplogs[date] ?? [];
-                    List<dynamic> originalTrips = triplogs[date] ?? [];
-                    List<dynamic> dayTrips = selectedVehicleFilter == null
+                    List<dynamic> originalTrips = viewModel.user?.triplogs[date] ?? [];
+                    List<dynamic> dayTrips = viewModel.selectedVehicleFilter == null
                         ? originalTrips
-                        : originalTrips.where((trip) => trip['vehicle'] == selectedVehicleFilter).toList();
+                        : originalTrips.where((trip) => trip.vehicle == viewModel.selectedVehicleFilter).toList();
 
                     if (dayTrips.isEmpty) {
                       return const SizedBox.shrink();
@@ -652,8 +479,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                 const NeverScrollableScrollPhysics(),
                                 itemCount: dayTrips.length,
                                 itemBuilder: (context, tripIndex) {
-                                  final trip = Map<String, dynamic>.from(
-                                      dayTrips[tripIndex]);
+                                  final trip = dayTrips[tripIndex].toMap();
 
                                   return ExpandableTripSummaryCard(
                                     from: trip['from'] ?? "~",
@@ -662,7 +488,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                     arrivalTime: trip['arrive'] ?? "~",
                                     distance:
                                     trip['distance']?.toString() ?? "~",
-                                    expense: trip['travel_cost']
+                                    expense: trip['travelCost']
                                         ?.toString() ??
                                         "~",
                                     riding: trip['to'] == "~",
@@ -676,7 +502,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                     endLng: trip['end']?['longitude'] ?? 0,
                                     routeData: trip['route'],
                                     onSlideFunction: (context)async{
-                                      showDeleteTripLogDialog(tripIndex, date,);
+                                      showDeleteTripLogDialog(tripIndex, date, viewModel);
                                     },
                                   )
                                       .animate()

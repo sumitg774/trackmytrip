@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../Components/TextFields.dart';
 import '../Utils/AppColorTheme.dart';
 import '../Utils/CommonFunctions.dart';
 import '../Utils/StorageService.dart';
+import '../ViewModels/SignupViewModel.dart';
 import 'LoginPage.dart';
 
 class SignupPage extends StatefulWidget {
@@ -17,179 +19,8 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
-  final _formKey = GlobalKey<FormState>();
 
-  // Controllers
-  final TextEditingController name = TextEditingController();
-  final TextEditingController email = TextEditingController();
-  final TextEditingController mobile = TextEditingController();
-  final TextEditingController password = TextEditingController();
-  final TextEditingController confirmPassword = TextEditingController();
-  final TextEditingController empId = TextEditingController();
-  bool isSubmitting = false;
-  late bool isDisabled = false;
-
-  String? SignupEmailValidation(String? email) {
-    // Updated Regex for stricter validation
-    RegExp emailRegex =
-    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-
-    // Check if the email matches the regex
-    final isEmailValid = emailRegex.hasMatch(email ?? "");
-
-    if (isEmailValid) {
-      return null; // Valid email, return null (no error message)
-    } else {
-      return "Please enter a valid email address.";
-    }
-  }
-
-  // Phone number validation
-  String? validatePhone(String? mobile) {
-    RegExp phoneRegex = RegExp(r'^\+?[0-9]{10,15}$');
-    if (mobile == null || mobile.isEmpty || mobile.length != 10) {
-      return 'Phone number should be 10 digits';
-    } else if (!phoneRegex.hasMatch(mobile)) {
-      return 'Please enter a valid phone number';
-    }
-    return null;
-  }
-
-  String? validateConfirmPassword(String? confirmPassword) {
-    if (confirmPassword == null || confirmPassword.isEmpty) {
-      return 'Please confirm your password';
-    }
-    if (confirmPassword != password.text) {
-      return 'Password and Confirm password should match';
-    }
-    return null;
-  }
-
-  Future<void> addUserToFirestore(String uid) async {
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    try {
-      String emailText = email.text.trim();
-
-      if (!emailText.contains('@')) {
-        print("Invalid email: '@' missing");
-        return;
-      }
-
-      List<String> emailParts = emailText.split('@');
-      if (emailParts.length != 2) {
-        print("Invalid email format");
-        return;
-      }
-
-      String emailDomain = emailParts[1];
-      var result = CommonFunctions().getDomainCollection(emailDomain);
-
-      String dynamicCollection = result["primary"] ?? "";
-      String dynamicTeamsCollection = result["secondary"] ?? "";
-      String dynamicLeaveCollection = result["tertiary"] ?? "";
-
-      // Save dynamic collection names
-      await StorageService.instance.saveCollectionName(dynamicCollection);
-      await StorageService.instance
-          .saveTeamsCollectionName(dynamicTeamsCollection);
-      await StorageService.instance
-          .saveLeaveCollectionName(dynamicLeaveCollection);
-
-      // 🟢 Create empty leaveDates doc if it doesn't exist
-      DocumentReference leaveDocRef =
-      firestore.collection(dynamicLeaveCollection).doc('leaveDates');
-      DocumentSnapshot leaveDoc = await leaveDocRef.get();
-      if (!leaveDoc.exists) {
-        await leaveDocRef.set({'dates': []});
-        print("📁 Created empty leaveDates doc in $dynamicLeaveCollection");
-      }
-
-      // 🔄 Fetch general leave dates
-      List<String> generalLeaveDates = [];
-      QuerySnapshot generalLeaveSnapshot =
-      await firestore.collection(dynamicLeaveCollection).get();
-      for (var doc in generalLeaveSnapshot.docs) {
-        Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-        if (data != null && data.containsKey('dates')) {
-          List<dynamic> datesArray = data['dates'];
-          for (var item in datesArray) {
-            if (item is Map<String, dynamic> && item.containsKey('date')) {
-              generalLeaveDates.add(item['date']);
-            }
-          }
-        }
-      }
-
-      // Convert to upcomingPlans
-      // List<UpcomingPlan> upcomingPlans = generalLeaveDates.map((date) {
-      //   return UpcomingPlan(
-      //     date: date,
-      //     status: 'General Leave',
-      //     lastUpdatedDateTime: DateTime.now().toIso8601String(),
-      //   );
-      // }).toList();
-
-      // Prepare userData
-      Map<String, dynamic> userData = {
-        'name': name.text.isNotEmpty ? name.text : "Unknown",
-        'email': email.text.toLowerCase(),
-        'emp_id': empId.text.isNotEmpty ? empId.text : "Unknown",
-        'phone': mobile.text.isNotEmpty ? mobile.text : "Unknown",
-        // 'avtar': avtar,
-        'emp_role': "Software Engineer",
-        'is_trip_started':false,
-        // 'fcm_token': fcm_token,
-        // 'upcoming': upcomingPlans.map((e) => e.toMap()).toList(),
-        'team': "Internal",
-        'teams': ["Internal"],
-        // 'joiningDate': DateFormat('MM/dd/yyyy').format(DateTime.now()),
-        // 'dob': dateofbirth.text.isNotEmpty ? dateofbirth.text : "Unknown",
-        'isDisabled': isDisabled,
-        // 'isApproved': false,
-      };
-
-      // 🔍 Confirm domain registered
-      QuerySnapshot domainQuery = await firestore
-          .collection("domain")
-          .where("domain_name", isEqualTo: emailDomain)
-          .get();
-
-      if (domainQuery.docs.isEmpty) {
-        print("Domain does not exist ❌");
-        return;
-      }
-
-      // 📝 Add user
-      await firestore.collection(dynamicCollection).doc(uid).set(userData);
-      print("✅ User added to $dynamicCollection");
-
-      // 👥 Ensure teams collection exists
-      QuerySnapshot teamQuery =
-      await firestore.collection(dynamicTeamsCollection).get();
-      if (teamQuery.docs.isEmpty) {
-        await firestore.collection(dynamicTeamsCollection).add({
-          'team_name': ["Internal", "External"],
-          'role_name': ["Team Lead", "Software Engineer", "Director"],
-          'Task': ["Development"],
-        });
-        print("📂 Teams collection created");
-      } else {
-        print("👥 Teams collection already exists");
-      }
-
-      // ✅ Success feedback
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Sign up successfully')),
-      // );
-    } catch (e) {
-      print("❌ Error while adding user: $e");
-    }
-  }
-
-
-
-  Future<bool> signUpWithEmail() async {
+  Future<bool> signUpWithEmail(SignupViewModel viewModel) async {
     // Show progress dialog
     showDialog(
       context: context,
@@ -203,7 +34,42 @@ class _SignupPageState extends State<SignupPage> {
       },
     );
 
-    try {
+    final error = await viewModel.signupWithEmail();
+
+    Navigator.pop(context);
+
+    if(error == null){
+      Navigator.pushNamed(context, "/login");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "Signed up successfully, please wait for admin's approval",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+          showCloseIcon: true,
+          backgroundColor: Colors.green,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+          ),
+          // Optional: adds spacing around
+        ),
+      );
+      return true;
+    } else {
+      print(viewModel.errorMessage);
+      String errorText = viewModel.errorMessage;
+      CommonFunctions.showSnackBar(errorText);
+      return false;
+    }
+
+    /*try {
       // Firebase Auth signup
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -263,11 +129,13 @@ class _SignupPageState extends State<SignupPage> {
       print("Unexpected error: $e");
       CommonFunctions.showSnackBar("An unexpected error occurred.");
       return false;
-    }
+    }*/
   }
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = Provider.of<SignupViewModel>(context);
+
     return Scaffold(
         backgroundColor: AppColors.customGrey50,
         body: SafeArea(
@@ -305,7 +173,7 @@ class _SignupPageState extends State<SignupPage> {
                         child: Padding(
                           padding: const EdgeInsets.all(10.0),
                           child: Form(
-                            key: _formKey,
+                            key: viewModel.formKey,
                             child: Padding(
                               padding:
                               const EdgeInsets.symmetric(horizontal: 8.0),
@@ -318,7 +186,7 @@ class _SignupPageState extends State<SignupPage> {
                                   ),
                                   SizedBox(height: 30),
                                   CustomInputTextField(
-                                    controller: name,
+                                    controller: viewModel.name,
                                     label: "Full Name",
                                     keyboard: TextInputType.name,
                                     leadingIcon: Icon(
@@ -332,10 +200,10 @@ class _SignupPageState extends State<SignupPage> {
                                   ),
                                   SizedBox(height: 30),
                                   CustomInputTextField(
-                                    controller: email,
+                                    controller: viewModel.email,
                                     label: "Email",
                                     keyboard: TextInputType.emailAddress,
-                                    // ValidateTextField: SignupEmailValidation,
+                                    ValidateTextField: viewModel.SignupEmailValidation,
                                     leadingIcon: Icon(
                                       Icons.email_rounded,
                                       color: AppColors.customBlue,
@@ -343,18 +211,18 @@ class _SignupPageState extends State<SignupPage> {
                                   ),
                                   SizedBox(height: 30),
                                   CustomInputTextField(
-                                    controller: mobile,
+                                    controller: viewModel.mobile,
                                     label: "Phone Number",
                                     keyboard: TextInputType.phone,
                                     leadingIcon: Icon(
                                       Icons.phone,
                                       color: AppColors.customBlue,
                                     ),
-                                    // ValidateTextField: validatePhone,
+                                    ValidateTextField: viewModel.validatePhone,
                                   ),
                                   SizedBox(height: 30),
                                   CustomInputTextField(
-                                    controller: empId,
+                                    controller: viewModel.empId,
                                     label: "Employee ID",
                                     keyboard: TextInputType.text,
                                     leadingIcon: Icon(
@@ -367,7 +235,7 @@ class _SignupPageState extends State<SignupPage> {
                                   ),
                                   SizedBox(height: 30),
                                   CustomPasswordTextField(
-                                    controller: password,
+                                    controller: viewModel.password,
                                     label: "Password",
                                     ValidateTextfield: (password) => password!
                                         .length <
@@ -377,10 +245,10 @@ class _SignupPageState extends State<SignupPage> {
                                   ),
                                   SizedBox(height: 30),
                                   CustomPasswordTextField(
-                                    controller: confirmPassword,
+                                    controller: viewModel.confirmPassword,
                                     textInputAction: TextInputAction.done,
                                     label: "Confirm Password",
-                                    // ValidateTextfield: validateConfirmPassword,
+                                    ValidateTextfield: viewModel.validateConfirmPassword,
                                   ),
                                   SizedBox(height: 60),
                                   Padding(
@@ -394,14 +262,13 @@ class _SignupPageState extends State<SignupPage> {
                                             Expanded(
                                               child: ElevatedButton(
                                                 onPressed: () async {
-                                                  if (isSubmitting) return;
+                                                  if (viewModel.isSubmitting) return;
 
-                                                  if (_formKey.currentState!.validate()) {
-                                                    setState(() {
-                                                      isSubmitting = true;
-                                                    });
+                                                  if (viewModel.formKey.currentState!.validate()) {
+                                                      viewModel.isSubmitting = true;
+                                                      viewModel.notifyListeners();
 
-                                                    String getemail = email.text.trim();
+                                                    String getemail = viewModel.email.text.trim();
 
                                                     if (getemail.contains('@')) {
                                                       List<String> emailParts = getemail.split('@');
@@ -410,7 +277,7 @@ class _SignupPageState extends State<SignupPage> {
                                                       var isDomainExist = await CommonFunctions().doesDomainExist(emailDomain);
 
                                                       if (isDomainExist) {
-                                                        bool signUpSuccess = await signUpWithEmail();
+                                                        bool signUpSuccess = await signUpWithEmail(viewModel);
 
 //                                                         if (signUpSuccess) {
 //                                                           await fetchDirectorEmails();
@@ -437,9 +304,8 @@ class _SignupPageState extends State<SignupPage> {
                                                       }
                                                     }
 
-                                                    setState(() {
-                                                      isSubmitting = false;
-                                                    });
+                                                      viewModel.isSubmitting = false;
+                                                      viewModel.notifyListeners();
                                                   }
                                                 },
                                                 style: ElevatedButton.styleFrom(
