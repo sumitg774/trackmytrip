@@ -44,6 +44,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   void setShowSummary(bool value, HistoryViewModel viewModel) {
       viewModel.showSummary = value;
+      viewModel.calculateTotalDistanceAndExpenditure();
   }
 
   Future<void> OpenSetDateDialog(HistoryViewModel viewModel) async {
